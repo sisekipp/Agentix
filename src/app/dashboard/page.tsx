@@ -10,7 +10,7 @@ import {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { org?: string };
+  searchParams: Promise<{ org?: string }>;
 }) {
   const user = await getCurrentUser();
 
@@ -21,8 +21,11 @@ export default async function DashboardPage({
   // Get user's organizations
   const { organizations } = await getUserOrganizations();
 
+  // Await searchParams (Next.js 16 requirement)
+  const params = await searchParams;
+
   // Select current organization (from URL param or first available)
-  const currentOrgId = searchParams.org || organizations?.[0]?.id;
+  const currentOrgId = params.org || organizations?.[0]?.id;
 
   // Get teams and workflows for current organization
   let teams: any[] = [];
