@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { organizations, users, teams, teamMembers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 
 export async function signInAction(formData: FormData) {
   const email = formData.get("email") as string;
@@ -105,7 +105,7 @@ export async function signUpAction(formData: FormData) {
         email,
         password,
       },
-      headers: await headers(), // Pass request headers for cookie management
+      headers: await headers(),
     });
 
     // Check if signup was successful
@@ -138,6 +138,21 @@ export async function signUpAction(formData: FormData) {
       userId: updatedUser.id,
       role: "admin",
     });
+
+    // Step 6: Sign in the user to establish a proper session
+    // This ensures the session cookie is correctly set
+    const signInResponse = await auth.api.signInEmail({
+      body: {
+        email,
+        password,
+      },
+      headers: await headers(),
+    });
+
+    if (!signInResponse || signInResponse.error) {
+      // User is created but couldn't auto-login, redirect to login page
+      redirect("/login");
+    }
 
     // Success - redirect to dashboard
     redirect("/dashboard");
