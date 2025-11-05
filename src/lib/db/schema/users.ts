@@ -1,5 +1,7 @@
 import { pgTable, uuid, varchar, timestamp, text, boolean } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { organizations } from "./organizations";
+import { teams } from "./teams";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(), // Better Auth uses text IDs by default
@@ -25,4 +27,22 @@ export const teamMembers = pgTable("team_members", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-import { teams } from "./teams";
+// Relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [users.organizationId],
+    references: [organizations.id],
+  }),
+  teamMemberships: many(teamMembers),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamMembers.teamId],
+    references: [teams.id],
+  }),
+  user: one(users, {
+    fields: [teamMembers.userId],
+    references: [users.id],
+  }),
+}));

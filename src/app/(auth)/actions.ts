@@ -25,9 +25,9 @@ export async function signInAction(formData: FormData) {
       headers: await headers(),
     });
 
-    if (!signInResponse || signInResponse.error) {
+    if (!signInResponse || !signInResponse.user) {
       return {
-        error: signInResponse?.error?.message || "Invalid email or password",
+        error: "Invalid email or password",
       };
     }
 
@@ -109,9 +109,9 @@ export async function signUpAction(formData: FormData) {
     });
 
     // Check if signup was successful
-    if (!signUpResponse || signUpResponse.error) {
+    if (!signUpResponse || !signUpResponse.user) {
       return {
-        error: signUpResponse?.error?.message || "Failed to create user",
+        error: "Failed to create user",
       };
     }
 
