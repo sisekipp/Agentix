@@ -26,7 +26,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { deleteWorkflow } from "@/app/dashboard/actions";
+import { deleteWorkflow, executeWorkflow } from "@/app/dashboard/actions";
+import { useRouter } from "next/navigation";
 
 interface Workflow {
   id: string;
@@ -50,7 +51,9 @@ interface WorkflowsListProps {
 }
 
 export function WorkflowsList({ workflows, onWorkflowDeleted }: WorkflowsListProps) {
+  const router = useRouter();
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [executingId, setExecutingId] = React.useState<string | null>(null);
 
   async function handleDelete(workflowId: string) {
     if (!confirm("Are you sure you want to delete this workflow?")) {
@@ -66,6 +69,28 @@ export function WorkflowsList({ workflows, onWorkflowDeleted }: WorkflowsListPro
       onWorkflowDeleted();
     }
     setDeletingId(null);
+  }
+
+  function handleEdit(workflowId: string) {
+    router.push(`/dashboard/workflows/${workflowId}`);
+  }
+
+  async function handleRun(workflowId: string) {
+    if (!confirm("Are you sure you want to run this workflow?")) {
+      return;
+    }
+
+    setExecutingId(workflowId);
+    const result = await executeWorkflow(workflowId, {});
+
+    if (result.error) {
+      alert(`Error: ${result.error}`);
+    } else {
+      alert(
+        `Workflow started!\nExecution ID: ${result.execution?.executionId}\nStatus: ${result.execution?.status}`
+      );
+    }
+    setExecutingId(null);
   }
 
   function formatDate(date: Date) {
@@ -130,19 +155,25 @@ export function WorkflowsList({ workflows, onWorkflowDeleted }: WorkflowsListPro
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleEdit(workflow.id)}
+                        disabled={deletingId === workflow.id || executingId === workflow.id}
+                      >
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleRun(workflow.id)}
+                        disabled={deletingId === workflow.id || executingId === workflow.id}
+                      >
                         <Play className="mr-2 h-4 w-4" />
-                        Run
+                        {executingId === workflow.id ? "Running..." : "Run"}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-red-600"
                         onClick={() => handleDelete(workflow.id)}
-                        disabled={deletingId === workflow.id}
+                        disabled={deletingId === workflow.id || executingId === workflow.id}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         {deletingId === workflow.id ? "Deleting..." : "Delete"}
