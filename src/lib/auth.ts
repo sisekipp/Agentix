@@ -9,6 +9,7 @@ export const auth = betterAuth({
     provider: "pg",
     schema: schema, // Pass the entire schema object
     usePlural: true, // Our tables use plural names (users, sessions, accounts, verifications)
+    generateId: () => randomUUID(), // Use UUID for user IDs to match our schema
   }),
   emailAndPassword: {
     enabled: true,
@@ -18,9 +19,6 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 1 day (update session when it's older than 1 day)
   },
   trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"],
-  advanced: {
-    generateId: () => randomUUID(), // Use UUID for user IDs to match our schema
-  },
 });
 
 export type Session = typeof auth.$Infer.Session.session;
