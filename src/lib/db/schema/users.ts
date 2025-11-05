@@ -4,13 +4,12 @@ import { organizations } from "./organizations";
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizationId: uuid("organization_id")
-    .references(() => organizations.id, { onDelete: "cascade" })
-    .notNull(),
+    .references(() => organizations.id, { onDelete: "cascade" }),
   email: varchar("email", { length: 255 }).notNull().unique(),
   emailVerified: timestamp("email_verified"), // Better Auth field
   name: varchar("name", { length: 255 }).notNull(),
-  passwordHash: text("password_hash").notNull(),
-  image: text("image"), // Better Auth field (renamed from avatar)
+  passwordHash: text("password_hash"), // Nullable - Better Auth stores passwords in accounts table
+  image: text("image"), // Better Auth field
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
