@@ -7,7 +7,7 @@ const publicRoutes = ["/", "/login", "/signup"];
 // Define protected routes that require authentication
 const protectedRoutes = ["/dashboard", "/workflows", "/settings"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow API routes and static files
