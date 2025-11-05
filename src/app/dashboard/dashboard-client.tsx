@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Building2 } from "lucide-react";
+import { Plus, Building2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/components/logout-button";
 import { OrganizationSelector } from "@/components/organization-selector";
 import { CreateOrganizationDialog } from "@/components/create-organization-dialog";
+import { CreateTeamDialog } from "@/components/create-team-dialog";
 import { CreateWorkflowDialog } from "@/components/create-workflow-dialog";
+import { TeamsList } from "@/components/teams-list";
 import { WorkflowsList } from "@/components/workflows-list";
 
 interface User {
@@ -66,6 +68,7 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const router = useRouter();
   const [showCreateOrgDialog, setShowCreateOrgDialog] = React.useState(false);
+  const [showCreateTeamDialog, setShowCreateTeamDialog] = React.useState(false);
   const [showCreateWorkflowDialog, setShowCreateWorkflowDialog] = React.useState(false);
 
   const currentOrganization = organizations.find((org) => org.id === currentOrganizationId);
@@ -75,6 +78,10 @@ export function DashboardClient({
   }
 
   function handleOrgCreated() {
+    router.refresh();
+  }
+
+  function handleTeamCreated() {
     router.refresh();
   }
 
@@ -146,21 +153,21 @@ export function DashboardClient({
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-zinc-600">
-                    Total Workflows
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{workflows.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-zinc-600">
                     Teams
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{teams.length}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-zinc-600">
+                    Total Workflows
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{workflows.length}</div>
                 </CardContent>
               </Card>
               <Card>
@@ -173,6 +180,23 @@ export function DashboardClient({
                   <div className="text-3xl font-bold">0</div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Teams Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Teams</h3>
+                  <p className="text-sm text-zinc-600">
+                    Organize your workflows and collaborate with team members
+                  </p>
+                </div>
+                <Button onClick={() => setShowCreateTeamDialog(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Team
+                </Button>
+              </div>
+              <TeamsList teams={teams} />
             </div>
 
             {/* Workflows Section */}
@@ -198,9 +222,15 @@ export function DashboardClient({
                   <CardHeader>
                     <CardTitle>No Teams Available</CardTitle>
                     <CardDescription>
-                      You need to be a member of at least one team to create workflows.
+                      You need to create a team first. Teams help you organize workflows and collaborate with members.
                     </CardDescription>
                   </CardHeader>
+                  <CardContent>
+                    <Button onClick={() => setShowCreateTeamDialog(true)}>
+                      <Users className="mr-2 h-4 w-4" />
+                      Create Your First Team
+                    </Button>
+                  </CardContent>
                 </Card>
               ) : (
                 <WorkflowsList
@@ -219,6 +249,14 @@ export function DashboardClient({
         onOpenChange={setShowCreateOrgDialog}
         onSuccess={handleOrgCreated}
       />
+      {currentOrganizationId && (
+        <CreateTeamDialog
+          open={showCreateTeamDialog}
+          onOpenChange={setShowCreateTeamDialog}
+          onSuccess={handleTeamCreated}
+          organizationId={currentOrganizationId}
+        />
+      )}
       <CreateWorkflowDialog
         open={showCreateWorkflowDialog}
         onOpenChange={setShowCreateWorkflowDialog}

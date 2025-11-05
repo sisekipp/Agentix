@@ -336,3 +336,62 @@ export async function getTeamsByOrganization(organizationId: string) {
     return { error: "Failed to fetch teams", teams: [] };
   }
 }
+
+export async function createTeam(formData: FormData) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  const name = formData.get("name") as string;
+  const slug = formData.get("slug") as string;
+  const description = formData.get("description") as string | null;
+  const organizationId = formData.get("organizationId") as string;
+
+  if (!name || !slug || !organizationId) {
+    return { error: "Name, slug, and organization are required" };
+  }
+
+  try {
+    // Verify user has access to this organization
+    const userOrgs = await getUserOrganizations();
+    const hasAccess = userOrgs.organizations?.some((org) => org.id === organizationId);
+
+    if (!hasAccess) {
+      return { error: "Access denied" };
+    }
+
+    // Check if slug already exists in this organization
+    const existingTeam = await db.query.teams.findFirst({
+      where: and(
+        eq(teams.organizationId, organizationId),
+        eq(teams.slug, slug)
+      ),
+    });
+
+    if (existingTeam) {
+      return { error: "Team slug already exists in this organization" };
+    }
+
+    // Create team
+    const [team] = await db
+      .insert(teams)
+      .values({
+        organizationId,
+        name,
+        slug,
+        description: description || null,
+      })
+      .returning();
+
+    // Add user as team admin
+    await db.insert(teamMembers).values({
+      teamId: team.id,
+      userId: user.id,
+      role: "admin",
+    });
+
+    return { success: true, team };
+  } catch (error) {
+    console.error("Failed to create team:", error);
+    return { error: "Failed to create team" };
+  }
+}
