@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, text } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, timestamp, text, boolean } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 
 export const users = pgTable("users", {
@@ -6,7 +6,7 @@ export const users = pgTable("users", {
   organizationId: uuid("organization_id")
     .references(() => organizations.id, { onDelete: "cascade" }),
   email: varchar("email", { length: 255 }).notNull().unique(),
-  emailVerified: timestamp("email_verified"), // Better Auth field
+  emailVerified: boolean("email_verified").notNull().default(false), // Better Auth field
   name: varchar("name", { length: 255 }).notNull(),
   image: text("image"), // Better Auth field (profile picture)
   createdAt: timestamp("created_at").defaultNow().notNull(),
