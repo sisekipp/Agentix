@@ -1,4 +1,5 @@
 import { pgTable, uuid, varchar, timestamp, text, jsonb, boolean, integer } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { teams } from "./teams";
 import { users } from "./users";
 
@@ -62,3 +63,51 @@ export const workflowExecutions = pgTable("workflow_executions", {
   triggeredById: text("triggered_by_id")
     .references(() => users.id),
 });
+
+// Relations
+export const workflowsRelations = relations(workflows, ({ one, many }) => ({
+  team: one(teams, {
+    fields: [workflows.teamId],
+    references: [teams.id],
+  }),
+  createdBy: one(users, {
+    fields: [workflows.createdById],
+    references: [users.id],
+  }),
+  versions: many(workflowVersions),
+}));
+
+export const workflowVersionsRelations = relations(workflowVersions, ({ one, many }) => ({
+  workflow: one(workflows, {
+    fields: [workflowVersions.workflowId],
+    references: [workflows.id],
+  }),
+  createdBy: one(users, {
+    fields: [workflowVersions.createdById],
+    references: [users.id],
+  }),
+  deployments: many(workflowDeployments),
+  executions: many(workflowExecutions),
+}));
+
+export const workflowDeploymentsRelations = relations(workflowDeployments, ({ one }) => ({
+  workflowVersion: one(workflowVersions, {
+    fields: [workflowDeployments.workflowVersionId],
+    references: [workflowVersions.id],
+  }),
+  deployedBy: one(users, {
+    fields: [workflowDeployments.deployedById],
+    references: [users.id],
+  }),
+}));
+
+export const workflowExecutionsRelations = relations(workflowExecutions, ({ one }) => ({
+  workflowVersion: one(workflowVersions, {
+    fields: [workflowExecutions.workflowVersionId],
+    references: [workflowVersions.id],
+  }),
+  triggeredBy: one(users, {
+    fields: [workflowExecutions.triggeredById],
+    references: [users.id],
+  }),
+}));
