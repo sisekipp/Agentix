@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import * as schema from "./db/schema";
+import { randomUUID } from "crypto";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -17,6 +18,9 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 1 day (update session when it's older than 1 day)
   },
   trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"],
+  advanced: {
+    generateId: () => randomUUID(), // Use UUID for user IDs to match our schema
+  },
 });
 
 export type Session = typeof auth.$Infer.Session.session;
