@@ -34,6 +34,10 @@ export async function signInAction(formData: FormData) {
     // Success - redirect to dashboard
     redirect("/dashboard");
   } catch (error: any) {
+    // Re-throw NEXT_REDIRECT errors - these are not actual errors
+    if (error.message?.includes("NEXT_REDIRECT")) {
+      throw error;
+    }
     console.error("Sign in error:", error);
     return {
       error: error.message || "Failed to sign in",
@@ -49,6 +53,10 @@ export async function signOutAction() {
 
     redirect("/login");
   } catch (error: any) {
+    // Re-throw NEXT_REDIRECT errors - these are not actual errors
+    if (error.message?.includes("NEXT_REDIRECT")) {
+      throw error;
+    }
     console.error("Sign out error:", error);
     return {
       error: error.message || "Failed to sign out",
@@ -134,6 +142,10 @@ export async function signUpAction(formData: FormData) {
     // Success - redirect to dashboard
     redirect("/dashboard");
   } catch (error: any) {
+    // Re-throw NEXT_REDIRECT errors - these are not actual errors
+    if (error.message?.includes("NEXT_REDIRECT")) {
+      throw error;
+    }
     console.error("Signup error:", error);
     return {
       error: error.message || "Failed to create account",
