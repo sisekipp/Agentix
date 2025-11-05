@@ -139,23 +139,8 @@ export async function signUpAction(formData: FormData) {
       role: "admin",
     });
 
-    // Step 6: Sign in the user to establish a proper session
-    // This ensures the session cookie is correctly set
-    const signInResponse = await auth.api.signInEmail({
-      body: {
-        email,
-        password,
-      },
-      headers: await headers(),
-    });
-
-    if (!signInResponse || signInResponse.error) {
-      // User is created but couldn't auto-login, redirect to login page
-      redirect("/login");
-    }
-
-    // Success - redirect to dashboard
-    redirect("/dashboard");
+    // Return success - client will handle login
+    return { success: true };
   } catch (error: any) {
     // Re-throw NEXT_REDIRECT errors - these are not actual errors
     if (error.message?.includes("NEXT_REDIRECT")) {

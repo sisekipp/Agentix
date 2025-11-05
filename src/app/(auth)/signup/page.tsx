@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signUpAction } from "../actions";
+import { signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +18,7 @@ import {
 } from "@/components/ui/card";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +29,7 @@ export default function SignupPage() {
 
     const formData = new FormData(e.currentTarget);
     const password = formData.get("password") as string;
+    const email = formData.get("email") as string;
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -40,19 +44,25 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
+      // Step 1: Create user with Server Action
       const result = await signUpAction(formData);
 
       if (result?.error) {
         setError(result.error);
         setIsLoading(false);
-      }
-      // If successful, redirect() throws NEXT_REDIRECT which is caught by Next.js
-      // We don't need to do anything here - the redirect happens automatically
-    } catch (err: any) {
-      // Ignore NEXT_REDIRECT errors - this is expected behavior
-      if (err.message?.includes("NEXT_REDIRECT")) {
         return;
       }
+
+      // Step 2: Sign in with Better Auth client (sets cookies properly)
+      await signIn.email({
+        email,
+        password,
+      });
+
+      // Step 3: Redirect to dashboard
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err: any) {
       setError(err.message || "Failed to create account");
       setIsLoading(false);
     }
