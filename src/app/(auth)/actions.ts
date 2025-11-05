@@ -41,6 +41,21 @@ export async function signInAction(formData: FormData) {
   }
 }
 
+export async function signOutAction() {
+  try {
+    await auth.api.signOut({
+      headers: await headers(),
+    });
+
+    redirect("/login");
+  } catch (error: any) {
+    console.error("Sign out error:", error);
+    return {
+      error: error.message || "Failed to sign out",
+    };
+  }
+}
+
 export async function signUpAction(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
