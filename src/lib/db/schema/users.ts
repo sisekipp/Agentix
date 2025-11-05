@@ -7,9 +7,10 @@ export const users = pgTable("users", {
     .references(() => organizations.id, { onDelete: "cascade" })
     .notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
+  emailVerified: timestamp("email_verified"), // Better Auth field
   name: varchar("name", { length: 255 }).notNull(),
   passwordHash: text("password_hash").notNull(),
-  avatar: text("avatar"),
+  image: text("image"), // Better Auth field (renamed from avatar)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
