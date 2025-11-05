@@ -7,6 +7,40 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
+export async function signInAction(formData: FormData) {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  // Validate input
+  if (!email || !password) {
+    return { error: "Missing email or password" };
+  }
+
+  try {
+    const signInResponse = await auth.api.signInEmail({
+      body: {
+        email,
+        password,
+      },
+      headers: await headers(),
+    });
+
+    if (!signInResponse || signInResponse.error) {
+      return {
+        error: signInResponse?.error?.message || "Invalid email or password",
+      };
+    }
+
+    // Success - redirect to dashboard
+    redirect("/dashboard");
+  } catch (error: any) {
+    console.error("Sign in error:", error);
+    return {
+      error: error.message || "Failed to sign in",
+    };
+  }
+}
+
 export async function signUpAction(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;

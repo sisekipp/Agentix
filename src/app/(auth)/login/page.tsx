@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signIn } from "@/lib/auth-client";
+import { signInAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,28 +16,25 @@ import {
 } from "@/components/ui/card";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      await signIn.email({
-        email,
-        password,
-      });
+      const formData = new FormData(e.currentTarget);
+      const result = await signInAction(formData);
 
-      router.push("/dashboard");
-    } catch (err) {
-      setError("Invalid email or password");
-      console.error(err);
-    } finally {
+      if (result?.error) {
+        setError(result.error);
+        setIsLoading(false);
+      }
+      // If successful, redirect() is called in the action
+    } catch (err: any) {
+      setError(err.message || "Failed to sign in");
       setIsLoading(false);
     }
   };
@@ -63,10 +59,9 @@ export default function LoginPage() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
               />
@@ -75,9 +70,8 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
