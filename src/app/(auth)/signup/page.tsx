@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signUp } from "@/lib/auth-client";
+import { signUpAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,17 +16,16 @@ import {
 } from "@/components/ui/card";
 
 export default function SignupPage() {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+
+    const formData = new FormData(e.currentTarget);
+    const password = formData.get("password") as string;
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -42,32 +40,15 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Ensure cookies are sent and received
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-        }),
-      });
+      const result = await signUpAction(formData);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create account");
+      if (result?.error) {
+        setError(result.error);
+        setIsLoading(false);
       }
-
-      // Force a full page reload to ensure cookies are properly set
-      // This is more reliable than router.push for authentication flows
-      window.location.href = "/dashboard";
+      // If successful, redirect() is called in the action
     } catch (err: any) {
       setError(err.message || "Failed to create account");
-      console.error(err);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -92,10 +73,9 @@ export default function SignupPage() {
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
+                name="name"
                 type="text"
                 placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
                 required
                 disabled={isLoading}
               />
@@ -104,10 +84,9 @@ export default function SignupPage() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
               />
@@ -116,9 +95,8 @@ export default function SignupPage() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
                 minLength={8}
