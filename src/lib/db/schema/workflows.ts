@@ -9,7 +9,7 @@ export const workflows = pgTable("workflows", {
     .notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  createdById: uuid("created_by_id")
+  createdById: text("created_by_id")
     .references(() => users.id)
     .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -26,7 +26,7 @@ export const workflowVersions = pgTable("workflow_versions", {
   description: text("description"),
   definition: jsonb("definition").notNull(), // Workflow graph/definition
   isActive: boolean("is_active").default(false).notNull(),
-  createdById: uuid("created_by_id")
+  createdById: text("created_by_id")
     .references(() => users.id)
     .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -39,7 +39,7 @@ export const workflowDeployments = pgTable("workflow_deployments", {
     .notNull(),
   environment: varchar("environment", { length: 50 }).notNull(), // production, staging, testing
   status: varchar("status", { length: 50 }).notNull(), // active, inactive, failed
-  deployedById: uuid("deployed_by_id")
+  deployedById: text("deployed_by_id")
     .references(() => users.id)
     .notNull(),
   deployedAt: timestamp("deployed_at").defaultNow().notNull(),
@@ -59,6 +59,6 @@ export const workflowExecutions = pgTable("workflow_executions", {
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
   duration: integer("duration"), // in milliseconds
-  triggeredById: uuid("triggered_by_id")
+  triggeredById: text("triggered_by_id")
     .references(() => users.id),
 });

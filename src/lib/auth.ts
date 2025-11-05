@@ -2,14 +2,12 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { randomUUID } from "crypto";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: schema, // Pass the entire schema object
     usePlural: true, // Our tables use plural names (users, sessions, accounts, verifications)
-    generateId: () => randomUUID(), // Use UUID for user IDs to match our schema
   }),
   emailAndPassword: {
     enabled: true,
