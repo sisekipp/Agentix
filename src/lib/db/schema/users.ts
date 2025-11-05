@@ -8,8 +8,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   emailVerified: timestamp("email_verified"), // Better Auth field
   name: varchar("name", { length: 255 }).notNull(),
-  passwordHash: text("password_hash"), // Nullable - Better Auth stores passwords in accounts table
-  image: text("image"), // Better Auth field
+  image: text("image"), // Better Auth field (profile picture)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
