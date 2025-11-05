@@ -32,8 +32,12 @@ export default function LoginPage() {
         setError(result.error);
         setIsLoading(false);
       }
-      // If successful, redirect() is called in the action
+      // If successful, redirect() throws NEXT_REDIRECT which is caught by Next.js
     } catch (err: any) {
+      // Ignore NEXT_REDIRECT errors - this is expected behavior
+      if (err.message?.includes("NEXT_REDIRECT")) {
+        return;
+      }
       setError(err.message || "Failed to sign in");
       setIsLoading(false);
     }
