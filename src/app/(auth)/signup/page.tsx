@@ -47,6 +47,7 @@ export default function SignupPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // Ensure cookies are sent and received
         body: JSON.stringify({
           name,
           email,
@@ -60,9 +61,9 @@ export default function SignupPage() {
         throw new Error(data.error || "Failed to create account");
       }
 
-      // Reload to update session
-      router.push("/dashboard");
-      router.refresh();
+      // Force a full page reload to ensure cookies are properly set
+      // This is more reliable than router.push for authentication flows
+      window.location.href = "/dashboard";
     } catch (err: any) {
       setError(err.message || "Failed to create account");
       console.error(err);

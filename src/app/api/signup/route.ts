@@ -59,6 +59,11 @@ export async function POST(request: NextRequest) {
     });
     console.log("Better Auth signup response:", signUpResponse);
 
+    // Check if signup was successful
+    if (!signUpResponse || signUpResponse.error) {
+      throw new Error(signUpResponse?.error?.message || "Failed to create user with Better Auth");
+    }
+
     // Step 3: Update the user with organizationId
     // Better Auth creates user without organizationId, so we need to update it
     console.log("Updating user with organizationId...");
@@ -90,15 +95,26 @@ export async function POST(request: NextRequest) {
     });
     console.log("User added to team successfully");
 
-    return NextResponse.json(
+    // Create response with user data
+    const response = NextResponse.json(
       {
         success: true,
         user: updatedUser,
         organization,
-        session: signUpResponse,
       },
       { status: 201 }
     );
+
+    // Forward the Set-Cookie headers from Better Auth's response
+    // This ensures the session cookie is set in the browser
+    if (signUpResponse.headers) {
+      const setCookieHeader = signUpResponse.headers.get("set-cookie");
+      if (setCookieHeader) {
+        response.headers.set("set-cookie", setCookieHeader);
+      }
+    }
+
+    return response;
   } catch (error: any) {
     console.error("Signup error details:", {
       message: error.message,
