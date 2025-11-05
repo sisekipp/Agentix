@@ -36,16 +36,13 @@ export function CreateOrganizationDialog({
 
     const formData = new FormData(e.currentTarget);
 
-    // Auto-generate slug from name if not provided
+    // Auto-generate slug from name
     const name = formData.get("name") as string;
-    const slug = formData.get("slug") as string;
-    if (!slug && name) {
-      const autoSlug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-      formData.set("slug", autoSlug);
-    }
+    const autoSlug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    formData.set("slug", autoSlug);
 
     const result = await createOrganization(formData);
 
@@ -83,25 +80,12 @@ export function CreateOrganizationDialog({
                 required
                 disabled={isSubmitting}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="slug">
-                Slug <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="slug"
-                name="slug"
-                placeholder="acme-inc"
-                pattern="[a-z0-9-]+"
-                title="Only lowercase letters, numbers, and hyphens"
-                disabled={isSubmitting}
-              />
               <p className="text-xs text-muted-foreground">
-                Auto-generated from name if left empty. Only lowercase letters, numbers, and hyphens.
+                A unique identifier will be automatically generated from the name.
               </p>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Description (optional)</Label>
               <Textarea
                 id="description"
                 name="description"
