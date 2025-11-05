@@ -13,9 +13,11 @@ import {
   Edge,
   Node,
   NodeTypes,
+  NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
+import { NodeConfigDialog } from '@/components/node-config-dialog';
 import type { WorkflowDefinition } from '@/lib/types/workflow';
 
 // Custom Node Components
@@ -66,12 +68,16 @@ interface WorkflowBuilderProps {
   initialDefinition?: WorkflowDefinition;
   onSave?: (definition: WorkflowDefinition) => void;
   readOnly?: boolean;
+  providers?: Array<{ id: string; name: string; provider: string; model: string }>;
+  tools?: Array<{ id: string; name: string; description: string; type: string }>;
 }
 
 export function WorkflowBuilder({
   initialDefinition,
   onSave,
   readOnly = false,
+  providers = [],
+  tools = [],
 }: WorkflowBuilderProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(
     (initialDefinition?.nodes || []) as unknown as Node[]
@@ -79,10 +85,47 @@ export function WorkflowBuilder({
   const [edges, setEdges, onEdgesChange] = useEdgesState(
     (initialDefinition?.edges || []) as unknown as Edge[]
   );
+  const [configDialog, setConfigDialog] = useState<{
+    open: boolean;
+    nodeId: string | null;
+    nodeType: string;
+    nodeData: any;
+  }>({
+    open: false,
+    nodeId: null,
+    nodeType: '',
+    nodeData: null,
+  });
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
+  );
+
+  const onNodeDoubleClick: NodeMouseHandler = useCallback((event, node) => {
+    setConfigDialog({
+      open: true,
+      nodeId: node.id,
+      nodeType: node.type || '',
+      nodeData: node.data,
+    });
+  }, []);
+
+  const handleConfigSave = useCallback(
+    (data: any) => {
+      if (!configDialog.nodeId) return;
+
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === configDialog.nodeId
+            ? { ...node, data: { ...node.data, ...data } }
+            : node
+        )
+      );
+
+      setConfigDialog({ open: false, nodeId: null, nodeType: '', nodeData: null });
+    },
+    [configDialog.nodeId, setNodes]
   );
 
   const addNode = useCallback(
@@ -164,6 +207,7 @@ export function WorkflowBuilder({
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onNodeDoubleClick={onNodeDoubleClick}
           nodeTypes={nodeTypes}
           fitView
           className="bg-gray-100"
@@ -173,6 +217,18 @@ export function WorkflowBuilder({
           <MiniMap />
         </ReactFlow>
       </div>
+
+      <NodeConfigDialog
+        open={configDialog.open}
+        onOpenChange={(open) =>
+          setConfigDialog((prev) => ({ ...prev, open }))
+        }
+        nodeType={configDialog.nodeType}
+        nodeData={configDialog.nodeData}
+        onSave={handleConfigSave}
+        providers={providers}
+        tools={tools}
+      />
     </div>
   );
 }

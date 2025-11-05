@@ -2,6 +2,8 @@ import { db } from '../db';
 import { workflowVersions, workflowExecutions } from '../db/schema/workflows';
 import { eq } from 'drizzle-orm';
 import { WorkflowConverter, ExecutableWorkflow } from './workflow-converter';
+import { LLMProviderService } from './llm-provider';
+import { ToolService } from './tool-service';
 import type {
   WorkflowDefinition,
   WorkflowExecutionInput,
@@ -188,22 +190,90 @@ export class WorkflowEngine {
         return { triggered: true, input: context.input };
 
       case 'agent':
-        // TODO: Integrate with LLM providers
-        return {
-          type: 'agent',
-          label: data.label,
-          result: `Agent ${data.label} executed`,
-          timestamp: new Date().toISOString(),
-        };
+        // Execute LLM Agent
+        try {
+          const agentConfig = data.config || {};
+          const { providerId, prompt, systemPrompt, temperature, maxTokens } = agentConfig;
+
+          if (!providerId) {
+            throw new Error('Agent node requires a providerId in config');
+          }
+
+          // Build messages
+          const messages: any[] = [];
+
+          if (systemPrompt) {
+            messages.push({ role: 'system', content: systemPrompt });
+          }
+
+          // Use prompt template with context substitution
+          const processedPrompt = this.processPromptTemplate(
+            prompt || 'Process the following input: {{input}}',
+            context
+          );
+          messages.push({ role: 'user', content: processedPrompt });
+
+          // Generate response
+          const result = await LLMProviderService.generate(providerId, {
+            messages,
+            temperature: temperature || 0.7,
+            maxTokens: maxTokens || 1000,
+          });
+
+          return {
+            type: 'agent',
+            label: data.label,
+            result: result.text,
+            usage: result.usage,
+            timestamp: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.error('Agent execution error:', error);
+          return {
+            type: 'agent',
+            label: data.label,
+            error: error instanceof Error ? error.message : String(error),
+            timestamp: new Date().toISOString(),
+          };
+        }
 
       case 'tool':
-        // TODO: Integrate with tools
-        return {
-          type: 'tool',
-          label: data.label,
-          result: `Tool ${data.label} executed`,
-          timestamp: new Date().toISOString(),
-        };
+        // Execute Tool
+        try {
+          const toolConfig = data.config || {};
+          const { toolId, input: toolInput } = toolConfig;
+
+          if (!toolId) {
+            throw new Error('Tool node requires a toolId in config');
+          }
+
+          // Process input with context
+          const processedInput = this.processToolInput(toolInput || {}, context);
+
+          // Execute tool
+          const result = await ToolService.executeTool(toolId, {
+            input: processedInput,
+            workflowContext: context,
+          });
+
+          return {
+            type: 'tool',
+            label: data.label,
+            success: result.success,
+            result: result.output,
+            error: result.error,
+            timestamp: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.error('Tool execution error:', error);
+          return {
+            type: 'tool',
+            label: data.label,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+            timestamp: new Date().toISOString(),
+          };
+        }
 
       case 'decision':
         const condition = data.config?.condition || 'true';
@@ -402,5 +472,76 @@ export class WorkflowEngine {
     };
 
     await poll();
+  }
+
+  /**
+   * Process prompt template with context substitution
+   */
+  private static processPromptTemplate(
+    template: string,
+    context: Record<string, any>
+  ): string {
+    let processed = template;
+
+    // Replace {{variable}} with context values
+    const regex = /\{\{([^}]+)\}\}/g;
+    processed = processed.replace(regex, (match, key) => {
+      const trimmedKey = key.trim();
+
+      // Support nested paths like {{input.name}}
+      const value = this.getNestedValue(context, trimmedKey);
+
+      if (value !== undefined) {
+        return typeof value === 'object' ? JSON.stringify(value) : String(value);
+      }
+
+      return match; // Keep original if not found
+    });
+
+    return processed;
+  }
+
+  /**
+   * Process tool input with context substitution
+   */
+  private static processToolInput(
+    input: any,
+    context: Record<string, any>
+  ): any {
+    if (typeof input === 'string') {
+      return this.processPromptTemplate(input, context);
+    }
+
+    if (Array.isArray(input)) {
+      return input.map((item) => this.processToolInput(item, context));
+    }
+
+    if (typeof input === 'object' && input !== null) {
+      const processed: any = {};
+      for (const [key, value] of Object.entries(input)) {
+        processed[key] = this.processToolInput(value, context);
+      }
+      return processed;
+    }
+
+    return input;
+  }
+
+  /**
+   * Get nested value from object by path
+   */
+  private static getNestedValue(obj: any, path: string): any {
+    const parts = path.split('.');
+    let current = obj;
+
+    for (const part of parts) {
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part];
+      } else {
+        return undefined;
+      }
+    }
+
+    return current;
   }
 }
