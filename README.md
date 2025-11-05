@@ -28,7 +28,7 @@ A powerful platform for building, testing, and deploying agentic workflows with 
 - Docker & Docker Compose (for local development)
 - PostgreSQL (if not using Docker)
 
-### Installation
+### Local Development Setup (Recommended)
 
 1. Clone the repository:
 ```bash
@@ -46,25 +46,36 @@ npm install
 cp .env.example .env.local
 ```
 
-Edit `.env.local` and add your database credentials and API keys.
+Edit `.env.local` and add your API keys (database credentials are already configured for local development).
 
-4. Start the database and application with Docker:
+4. Start the PostgreSQL database:
+```bash
+npm run dev:db
+```
+
+This starts PostgreSQL in Docker on port 5432.
+
+5. Start the development server:
+```bash
+npm run dev
+```
+
+This command will:
+- Wait for the database to be ready
+- Automatically push the database schema
+- Start the Next.js development server with hot-reload
+
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Alternative: Full Docker Setup
+
+If you prefer to run everything in Docker:
+
 ```bash
 docker-compose up -d
 ```
 
-Alternatively, if you have PostgreSQL running locally:
-
-```bash
-# Generate and run database migrations
-npm run db:generate
-npm run db:push
-
-# Start the development server
-npm run dev
-```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+This starts both PostgreSQL and the Next.js app in containers.
 
 ## Database Management
 
@@ -87,17 +98,19 @@ npm run db:studio
 ```
 agentix/
 ├── src/
-│   ├── app/              # Next.js App Router pages
-│   ├── components/       # React components
-│   │   └── ui/          # Shadcn UI components
-│   ├── lib/             # Utilities and shared code
-│   │   └── db/          # Database schema and connection
-│   ├── hooks/           # Custom React hooks
-│   ├── types/           # TypeScript type definitions
-│   └── config/          # Configuration files
-├── drizzle/             # Database migrations
-├── public/              # Static assets
-└── docker-compose.yml   # Docker configuration
+│   ├── app/                    # Next.js App Router pages
+│   ├── components/             # React components
+│   │   └── ui/                # Shadcn UI components
+│   ├── lib/                   # Utilities and shared code
+│   │   └── db/                # Database schema and connection
+│   ├── hooks/                 # Custom React hooks
+│   ├── types/                 # TypeScript type definitions
+│   └── config/                # Configuration files
+├── scripts/                    # Development scripts
+├── drizzle/                    # Database migrations
+├── public/                     # Static assets
+├── docker-compose.yml          # Full Docker setup (app + db)
+└── docker-compose.dev.yml      # Development Docker setup (db only)
 ```
 
 ## Database Schema
@@ -126,9 +139,20 @@ See `.env.example` for required environment variables:
 
 ## Development
 
+### Available Scripts
+
 ```bash
-# Start development server
+# Start development server (with auto DB schema push)
 npm run dev
+
+# Start development server without setup (faster restarts)
+npm run dev:only
+
+# Start PostgreSQL database only
+npm run dev:db
+
+# Stop PostgreSQL database
+npm run dev:db:stop
 
 # Build for production
 npm run build
@@ -139,6 +163,27 @@ npm start
 # Run linter
 npm run lint
 ```
+
+### Development Workflow
+
+1. **First time setup:**
+   ```bash
+   npm run dev:db    # Start database
+   npm run dev       # Setup DB schema and start dev server
+   ```
+
+2. **Subsequent development sessions:**
+   ```bash
+   npm run dev       # Auto-checks DB and starts server
+   # or
+   npm run dev:only  # Skip DB setup for faster restarts
+   ```
+
+3. **Database management:**
+   ```bash
+   npm run db:studio # Open visual database editor
+   npm run db:push   # Push schema changes to database
+   ```
 
 ## Docker Deployment
 

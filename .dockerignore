@@ -42,4 +42,8 @@ drizzle/
 # docker
 Dockerfile
 docker-compose.yml
+docker-compose.dev.yml
 .dockerignore
+
+# development scripts
+scripts/

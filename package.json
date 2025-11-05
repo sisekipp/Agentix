@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev-setup.js && next dev",
+    "dev:only": "next dev",
+    "dev:db": "docker-compose -f docker-compose.dev.yml up -d",
+    "dev:db:stop": "docker-compose -f docker-compose.dev.yml down",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
