@@ -283,9 +283,45 @@ export class ScenarioEngine {
             throw new Error(`No active agent version found for: ${config.agentId}`);
           }
 
-          // CRITICAL FIX: Use context.input (from scenario trigger) instead of config.input
-          // The agent should receive the input that was passed to the scenario
-          const processedInput = context.input || {};
+          // Find the incoming edge to determine what input this agent should receive
+          const incomingEdges = edges.filter(e => e.target === node.id);
+          let processedInput: Record<string, any>;
+
+          if (incomingEdges.length > 0) {
+            // Get the source node of the first incoming edge
+            const sourceNodeId = incomingEdges[0].source;
+
+            console.log(`Agent ${node.id} input determination:`, {
+              sourceNodeId,
+              availableInContext: Object.keys(context),
+            });
+
+            // If the source is the trigger node, use the original input
+            if (sourceNodeId === 'trigger-node') {
+              processedInput = context.input || {};
+              console.log(`Using trigger input:`, processedInput);
+            } else {
+              // Use the output of the previous node
+              const previousNodeResult = context[sourceNodeId];
+              if (previousNodeResult && previousNodeResult.output) {
+                // Previous node is an agent - use its output
+                processedInput = previousNodeResult.output || {};
+                console.log(`Using previous agent output:`, processedInput);
+              } else if (previousNodeResult) {
+                // Previous node is something else - use the whole result
+                processedInput = previousNodeResult;
+                console.log(`Using previous node result:`, processedInput);
+              } else {
+                // Fallback to original input if no previous result found
+                processedInput = context.input || {};
+                console.log(`No previous result found, using original input:`, processedInput);
+              }
+            }
+          } else {
+            // No incoming edges - use original input
+            processedInput = context.input || {};
+            console.log(`No incoming edges, using original input:`, processedInput);
+          }
 
           // Execute agent
           const agentResult = await AgentEngine.executeAgent({
