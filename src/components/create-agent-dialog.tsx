@@ -81,12 +81,15 @@ export function CreateAgentDialog({
         setIcon('🤖');
         setColor('#3b82f6');
 
-        // Navigate to agent editor
-        if (result.agent?.id) {
-          router.push(`/dashboard/agents/${result.agent.id}`);
-        }
-
+        // Call onSuccess first (closes dialog and refreshes cache)
         onSuccess?.();
+
+        // Then navigate to agent editor after a brief delay
+        if (result.agent?.id) {
+          setTimeout(() => {
+            router.push(`/dashboard/agents/${result.agent.id}`);
+          }, 100);
+        }
       }
     });
   };

@@ -9,6 +9,10 @@ import { db } from '@/lib/db';
 import { scenarios, teamMembers } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
+// Disable caching for this page to always show latest scenarios
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ScenariosPage({
   searchParams,
 }: {

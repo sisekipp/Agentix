@@ -94,12 +94,15 @@ export function CreateScenarioDialog({
         setDescription('');
         setTriggerType('chat');
 
-        // Navigate to scenario editor
-        if (result.scenario?.id) {
-          router.push(`/dashboard/scenarios/${result.scenario.id}`);
-        }
-
+        // Call onSuccess first (closes dialog and refreshes cache)
         onSuccess?.();
+
+        // Then navigate to scenario editor after a brief delay
+        if (result.scenario?.id) {
+          setTimeout(() => {
+            router.push(`/dashboard/scenarios/${result.scenario.id}`);
+          }, 100);
+        }
       }
     });
   };
