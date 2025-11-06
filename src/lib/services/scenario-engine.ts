@@ -6,7 +6,7 @@ import {
   agentVersions,
   agents,
 } from '../db/schema/agents';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { AgentEngine } from './agent-engine';
 import type {
   ScenarioDefinition,
@@ -474,28 +474,42 @@ export class ScenarioEngine {
     const allActiveVersions = await db
       .select()
       .from(scenarioVersions)
-      .where(eq(scenarioVersions.scenarioId, scenarioId))
-      .where(eq(scenarioVersions.isActive, true));
+      .where(
+        and(
+          eq(scenarioVersions.scenarioId, scenarioId),
+          eq(scenarioVersions.isActive, true)
+        )
+      );
 
     console.log('getActiveScenarioVersion query:', {
       scenarioId,
       totalActiveVersions: allActiveVersions.length,
-      versionIds: allActiveVersions.map(v => ({ id: v.id, name: v.name, createdAt: v.createdAt })),
+      versionIds: allActiveVersions.map(v => ({
+        id: v.id,
+        name: v.name,
+        scenarioId: v.scenarioId,
+        createdAt: v.createdAt
+      })),
     });
 
     // CRITICAL FIX: Get the NEWEST active version with ORDER BY createdAt DESC
-    // Without this, PostgreSQL returns versions in arbitrary order (usually oldest first)
+    // Using AND() to ensure both conditions are applied correctly
     const [version] = await db
       .select()
       .from(scenarioVersions)
-      .where(eq(scenarioVersions.scenarioId, scenarioId))
-      .where(eq(scenarioVersions.isActive, true))
+      .where(
+        and(
+          eq(scenarioVersions.scenarioId, scenarioId),
+          eq(scenarioVersions.isActive, true)
+        )
+      )
       .orderBy(desc(scenarioVersions.createdAt))
       .limit(1);
 
     console.log('Selected version for execution:', {
       versionId: version?.id,
       versionName: version?.name,
+      scenarioId: version?.scenarioId,
       createdAt: version?.createdAt,
     });
 
