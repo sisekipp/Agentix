@@ -470,6 +470,19 @@ export class ScenarioEngine {
    * Get active scenario version
    */
   private static async getActiveScenarioVersion(scenarioId: string) {
+    // Debug: Check how many active versions exist
+    const allActiveVersions = await db
+      .select()
+      .from(scenarioVersions)
+      .where(eq(scenarioVersions.scenarioId, scenarioId))
+      .where(eq(scenarioVersions.isActive, true));
+
+    console.log('getActiveScenarioVersion query:', {
+      scenarioId,
+      totalActiveVersions: allActiveVersions.length,
+      versionIds: allActiveVersions.map(v => ({ id: v.id, name: v.name })),
+    });
+
     const [version] = await db
       .select()
       .from(scenarioVersions)

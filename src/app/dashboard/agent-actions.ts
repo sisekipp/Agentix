@@ -551,6 +551,9 @@ export async function updateScenarioDefinition(
     // Debug: Log what we're trying to save
     console.log('updateScenarioDefinition called:', {
       scenarioId,
+      activeVersionId: activeVersion.id,
+      activeVersionName: activeVersion.name,
+      totalActiveVersions: scenario.versions.length,
       nodeCount: definition?.nodes?.length || 0,
       edgeCount: definition?.edges?.length || 0,
       nodes: definition?.nodes?.map(n => ({ id: n.id, type: n.type })) || [],
