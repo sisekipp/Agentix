@@ -959,10 +959,29 @@ export async function sendMessage(conversationId: string, message: string) {
     if (result.error) {
       // If execution failed, store error message
       assistantContent = `Sorry, I encountered an error: ${result.error}`;
-    } else if (result.output?.results || result.output) {
-      // If execution succeeded, store output
-      const assistantMessage = result.output?.results || result.output;
-      assistantContent = JSON.stringify(assistantMessage);
+    } else if (result.output?.results) {
+      // Extract LLM responses from nested scenario/agent structure
+      const llmResponses: string[] = [];
+
+      // Iterate through scenario nodes
+      for (const [nodeId, nodeResult] of Object.entries(result.output.results)) {
+        // Check if this is a scenario-agent node with agent output
+        if ((nodeResult as any)?.output?.results) {
+          const agentResults = (nodeResult as any).output.results;
+
+          // Iterate through agent nodes (LLM nodes)
+          for (const [agentNodeId, agentNodeResult] of Object.entries(agentResults)) {
+            if ((agentNodeResult as any)?.result) {
+              llmResponses.push((agentNodeResult as any).result);
+            }
+          }
+        }
+      }
+
+      // Use collected LLM responses, or fallback to JSON
+      assistantContent = llmResponses.length > 0
+        ? llmResponses.join('\n\n')
+        : JSON.stringify(result.output.results);
     } else {
       // Fallback: no output available
       assistantContent = "Execution completed but no output was generated.";
