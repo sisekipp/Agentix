@@ -5,6 +5,8 @@ import { organizations, teams, teamMembers, workflows, workflowVersions } from "
 import { requireAuth } from "@/lib/auth-server";
 import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { WorkflowEngine } from "@/lib/services/workflow-engine";
+import type { WorkflowDefinition } from "@/lib/types/workflow";
 
 // Organization Actions
 
@@ -130,7 +132,10 @@ export async function createWorkflow(formData: FormData) {
   const description = formData.get("description") as string | null;
   const teamId = formData.get("teamId") as string;
 
+  console.log("Creating workflow:", { name, teamId, userId: user.id });
+
   if (!name || !teamId) {
+    console.log("Missing required fields:", { name: !!name, teamId: !!teamId });
     return { error: "Name and team are required" };
   }
 
@@ -143,11 +148,19 @@ export async function createWorkflow(formData: FormData) {
       ),
     });
 
+    console.log("Team membership check:", {
+      teamId,
+      userId: user.id,
+      isMember: !!teamMembership,
+      membership: teamMembership
+    });
+
     if (!teamMembership) {
-      return { error: "Access denied" };
+      return { error: "Access denied - you are not a member of this team" };
     }
 
     // Create workflow
+    console.log("Attempting to insert workflow into database...");
     const [workflow] = await db
       .insert(workflows)
       .values({
@@ -155,10 +168,15 @@ export async function createWorkflow(formData: FormData) {
         name,
         description: description || null,
         createdById: user.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
 
+    console.log("Workflow created successfully:", workflow.id);
+
     // Create initial version
+    console.log("Creating initial workflow version...");
     await db.insert(workflowVersions).values({
       workflowId: workflow.id,
       version: 1,
@@ -167,12 +185,16 @@ export async function createWorkflow(formData: FormData) {
       definition: { nodes: [], edges: [] }, // Empty workflow definition
       isActive: true,
       createdById: user.id,
+      createdAt: new Date(),
     });
+
+    console.log("Workflow version created successfully for:", workflow.id);
 
     return { success: true, workflow };
   } catch (error) {
-    console.error("Failed to create workflow:", error);
-    return { error: "Failed to create workflow" };
+    console.error("Failed to create workflow - FULL ERROR:", error);
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    return { error: `Failed to create workflow: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
 
@@ -233,34 +255,58 @@ export async function getWorkflowsByOrganization(organizationId: string) {
         )
       );
 
+    console.log("User teams in organization:", {
+      organizationId,
+      userId: user.id,
+      teamCount: userTeams.length,
+      teamIds: userTeams.map(t => t.teamId),
+    });
+
     if (userTeams.length === 0) {
       return { workflows: [] };
     }
 
     const teamIds = userTeams.map((t) => t.teamId);
 
-    // Get all workflows from these teams
-    const workflowList = await db.query.workflows.findMany({
-      where: eq(workflows.teamId, teamIds[0]), // This needs to be improved for multiple teams
-      orderBy: [desc(workflows.createdAt)],
-      with: {
-        team: {
-          columns: {
-            id: true,
-            name: true,
-          },
-        },
-        createdBy: {
-          columns: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
+    // Get all workflows from ALL user teams (not just the first one)
+    const workflowList = await db
+      .select()
+      .from(workflows)
+      .where(
+        teamIds.length === 1
+          ? eq(workflows.teamId, teamIds[0])
+          : // Use SQL IN clause for multiple teams
+            sql`${workflows.teamId} IN ${teamIds}`
+      )
+      .orderBy(desc(workflows.createdAt));
+
+    console.log("Workflows found:", {
+      count: workflowList.length,
+      workflows: workflowList.map(w => ({ id: w.id, name: w.name, teamId: w.teamId })),
     });
 
-    return { workflows: workflowList };
+    // Fetch related data
+    const workflowsWithRelations = await Promise.all(
+      workflowList.map(async (workflow) => {
+        const team = await db.query.teams.findFirst({
+          where: eq(teams.id, workflow.teamId),
+          columns: { id: true, name: true },
+        });
+
+        const createdBy = await db.query.users.findFirst({
+          where: eq(users.id, workflow.createdById),
+          columns: { id: true, name: true, email: true },
+        });
+
+        return {
+          ...workflow,
+          team,
+          createdBy,
+        };
+      })
+    );
+
+    return { workflows: workflowsWithRelations };
   } catch (error) {
     console.error("Failed to fetch workflows:", error);
     return { error: "Failed to fetch workflows", workflows: [] };
@@ -393,5 +439,260 @@ export async function createTeam(formData: FormData) {
   } catch (error) {
     console.error("Failed to create team:", error);
     return { error: "Failed to create team" };
+  }
+}
+
+// Workflow Execution Actions
+
+export async function executeWorkflow(workflowId: string, input?: Record<string, any>) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  try {
+    // Get workflow and verify access
+    const workflow = await db.query.workflows.findFirst({
+      where: eq(workflows.id, workflowId),
+      with: {
+        team: true,
+        versions: {
+          where: eq(workflowVersions.isActive, true),
+          limit: 1,
+        },
+      },
+    });
+
+    if (!workflow) {
+      return { error: "Workflow not found" };
+    }
+
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, workflow.teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied" };
+    }
+
+    // Get active version
+    const activeVersion = workflow.versions[0];
+    if (!activeVersion) {
+      return { error: "No active workflow version found" };
+    }
+
+    // Execute workflow
+    const result = await WorkflowEngine.executeWorkflow({
+      workflowVersionId: activeVersion.id,
+      input: input || {},
+      triggeredById: user.id,
+    });
+
+    return { success: true, execution: result };
+  } catch (error) {
+    console.error("Failed to execute workflow:", error);
+    return { error: "Failed to execute workflow" };
+  }
+}
+
+export async function getWorkflowExecutions(workflowId: string) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  try {
+    // Get workflow and verify access
+    const workflow = await db.query.workflows.findFirst({
+      where: eq(workflows.id, workflowId),
+      with: {
+        team: true,
+        versions: true,
+      },
+    });
+
+    if (!workflow) {
+      return { error: "Workflow not found", executions: [] };
+    }
+
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, workflow.teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied", executions: [] };
+    }
+
+    // Get all executions for active version
+    const activeVersion = workflow.versions.find((v) => v.isActive);
+    if (!activeVersion) {
+      return { executions: [] };
+    }
+
+    const executions = await WorkflowEngine.getExecutions(activeVersion.id);
+
+    return { executions };
+  } catch (error) {
+    console.error("Failed to fetch workflow executions:", error);
+    return { error: "Failed to fetch workflow executions", executions: [] };
+  }
+}
+
+export async function cancelWorkflowExecution(executionId: string) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  try {
+    // Get execution details
+    const execution = await WorkflowEngine.getExecution(executionId);
+    if (!execution) {
+      return { error: "Execution not found" };
+    }
+
+    // Get workflow version and workflow to verify access
+    const version = await db.query.workflowVersions.findFirst({
+      where: eq(workflowVersions.id, execution.workflowVersionId),
+      with: {
+        workflow: {
+          with: {
+            team: true,
+          },
+        },
+      },
+    });
+
+    if (!version) {
+      return { error: "Workflow version not found" };
+    }
+
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, version.workflow.teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied" };
+    }
+
+    // Cancel execution
+    const success = await WorkflowEngine.cancelExecution(executionId);
+
+    return { success };
+  } catch (error) {
+    console.error("Failed to cancel workflow execution:", error);
+    return { error: "Failed to cancel workflow execution" };
+  }
+}
+
+export async function getWorkflowVersion(workflowId: string) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  try {
+    // Get workflow and verify access
+    const workflow = await db.query.workflows.findFirst({
+      where: eq(workflows.id, workflowId),
+      with: {
+        team: true,
+        versions: {
+          where: eq(workflowVersions.isActive, true),
+          limit: 1,
+        },
+      },
+    });
+
+    if (!workflow) {
+      return { error: "Workflow not found" };
+    }
+
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, workflow.teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied" };
+    }
+
+    const activeVersion = workflow.versions[0];
+    if (!activeVersion) {
+      return { error: "No active workflow version found" };
+    }
+
+    return { version: activeVersion };
+  } catch (error) {
+    console.error("Failed to fetch workflow version:", error);
+    return { error: "Failed to fetch workflow version" };
+  }
+}
+
+export async function updateWorkflowDefinition(
+  workflowId: string,
+  definition: WorkflowDefinition
+) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  try {
+    // Get workflow and verify access
+    const workflow = await db.query.workflows.findFirst({
+      where: eq(workflows.id, workflowId),
+      with: {
+        team: true,
+        versions: {
+          where: eq(workflowVersions.isActive, true),
+          limit: 1,
+        },
+      },
+    });
+
+    if (!workflow) {
+      return { error: "Workflow not found" };
+    }
+
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, workflow.teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied" };
+    }
+
+    // Get active version
+    const activeVersion = workflow.versions[0];
+    if (!activeVersion) {
+      return { error: "No active workflow version found" };
+    }
+
+    // Update workflow definition
+    const [updatedVersion] = await db
+      .update(workflowVersions)
+      .set({
+        definition,
+      })
+      .where(eq(workflowVersions.id, activeVersion.id))
+      .returning();
+
+    // Clear workflow cache
+    WorkflowEngine.clearCache(activeVersion.id);
+
+    return { success: true, version: updatedVersion };
+  } catch (error) {
+    console.error("Failed to update workflow definition:", error);
+    return { error: "Failed to update workflow definition" };
   }
 }

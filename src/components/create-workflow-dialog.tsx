@@ -44,6 +44,21 @@ export function CreateWorkflowDialog({
   const [error, setError] = React.useState<string | null>(null);
   const [selectedTeam, setSelectedTeam] = React.useState<string>("");
 
+  // Auto-select first team when dialog opens or teams change
+  React.useEffect(() => {
+    if (open && teams.length > 0 && !selectedTeam) {
+      setSelectedTeam(teams[0].id);
+    }
+  }, [open, teams, selectedTeam]);
+
+  // Reset form when dialog closes
+  React.useEffect(() => {
+    if (!open) {
+      setSelectedTeam("");
+      setError(null);
+    }
+  }, [open]);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
@@ -52,7 +67,15 @@ export function CreateWorkflowDialog({
     const formData = new FormData(e.currentTarget);
     formData.set("teamId", selectedTeam);
 
+    console.log("Submitting workflow creation:", {
+      name: formData.get("name"),
+      teamId: selectedTeam,
+      description: formData.get("description"),
+    });
+
     const result = await createWorkflow(formData);
+
+    console.log("Workflow creation result:", result);
 
     if (result.error) {
       setError(result.error);
