@@ -1,0 +1,174 @@
+"use client";
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Plus, Pencil, Trash2, Workflow, MessageSquare, Zap, Webhook, Clock } from 'lucide-react';
+import { CreateScenarioDialog } from '@/components/create-scenario-dialog';
+import { deleteScenario } from '../agent-actions';
+
+interface ScenariosClientProps {
+  user: any;
+  organizations: any[];
+  currentOrganizationId?: string;
+  teams: any[];
+  scenarios: any[];
+}
+
+const TRIGGER_ICONS = {
+  chat: MessageSquare,
+  api: Zap,
+  webhook: Webhook,
+  schedule: Clock,
+};
+
+const TRIGGER_COLORS = {
+  chat: 'bg-blue-100 text-blue-800',
+  api: 'bg-green-100 text-green-800',
+  webhook: 'bg-purple-100 text-purple-800',
+  schedule: 'bg-orange-100 text-orange-800',
+};
+
+export function ScenariosClient({
+  user,
+  organizations,
+  currentOrganizationId,
+  teams,
+  scenarios,
+}: ScenariosClientProps) {
+  const router = useRouter();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const handleDelete = async (scenarioId: string, scenarioName: string) => {
+    if (!confirm(`Are you sure you want to delete "${scenarioName}"?`)) {
+      return;
+    }
+
+    setIsDeleting(scenarioId);
+    try {
+      const result = await deleteScenario(scenarioId);
+      if (result.error) {
+        alert(`Error: ${result.error}`);
+      } else {
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Failed to delete scenario:', error);
+      alert('Failed to delete scenario');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  const handleCreateSuccess = () => {
+    setCreateDialogOpen(false);
+    router.refresh();
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <Workflow className="w-8 h-8" />
+                Scenarios
+              </h1>
+              <p className="mt-2 text-sm text-gray-600">
+                Orchestrate multiple agents with different triggers
+              </p>
+            </div>
+            <Button onClick={() => setCreateDialogOpen(true)} size="lg">
+              <Plus className="w-5 h-5 mr-2" />
+              Create Scenario
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Scenarios Grid */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {scenarios.length === 0 ? (
+          <div className="text-center py-12">
+            <Workflow className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-semibold text-gray-900">No scenarios</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Get started by creating your first scenario.
+            </p>
+            <div className="mt-6">
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Scenario
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {scenarios.map((scenario) => {
+              const TriggerIcon = TRIGGER_ICONS[scenario.triggerType as keyof typeof TRIGGER_ICONS] || Zap;
+              const triggerColorClass = TRIGGER_COLORS[scenario.triggerType as keyof typeof TRIGGER_COLORS] || 'bg-gray-100 text-gray-800';
+
+              return (
+                <div
+                  key={scenario.id}
+                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => router.push(`/dashboard/scenarios/${scenario.id}`)}
+                >
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`px-3 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium ${triggerColorClass}`}>
+                        <TriggerIcon className="w-4 h-4" />
+                        {scenario.triggerType}
+                      </div>
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => router.push(`/dashboard/scenarios/${scenario.id}`)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(scenario.id, scenario.name)}
+                          disabled={isDeleting === scenario.id}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {scenario.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {scenario.description || 'No description'}
+                    </p>
+                    <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+                      <span>
+                        Created {new Date(scenario.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className={`px-2 py-1 rounded ${scenario.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                        {scenario.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <CreateScenarioDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onSuccess={handleCreateSuccess}
+        teams={teams}
+      />
+    </div>
+  );
+}
