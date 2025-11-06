@@ -572,6 +572,12 @@ export async function updateScenarioDefinition(
       .where(eq(scenarioVersions.id, activeVersion.id))
       .returning();
 
+    console.log('Database update result:', {
+      versionId: updatedVersion.id,
+      savedNodeCount: (updatedVersion.orchestrationDefinition as any)?.nodes?.length || 0,
+      savedEdgeCount: (updatedVersion.orchestrationDefinition as any)?.edges?.length || 0,
+    });
+
     return { success: true, version: updatedVersion };
   } catch (error) {
     console.error("Failed to update scenario definition:", error);

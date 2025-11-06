@@ -50,6 +50,16 @@ export class ScenarioEngine {
         );
       }
 
+      // Debug: Log what was loaded from database
+      const loadedDef = version.orchestrationDefinition as any;
+      console.log('Loaded scenario version from database:', {
+        versionId: version.id,
+        versionName: version.name,
+        loadedNodeCount: loadedDef?.nodes?.length || 0,
+        loadedEdgeCount: loadedDef?.edges?.length || 0,
+        loadedNodes: loadedDef?.nodes?.map((n: any) => ({ id: n.id, type: n.type })) || [],
+      });
+
       // Create scenario execution record
       const [execution] = await db
         .insert(scenarioExecutions)
