@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { agents, agentVersions, teamMembers, scenarioExecutions } from '@/lib/db/schema';
+import { agents, agentVersions, teamMembers, scenarios, scenarioVersions, scenarioExecutions } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { AgentEngine } from '@/lib/services/agent-engine';
 import { getCurrentUser } from '@/lib/auth-server';
@@ -83,10 +83,51 @@ export async function POST(
       // Empty input is ok for test
     }
 
-    // Create a temporary scenario execution for testing
-    // (Agents normally run within scenarios, but for testing we create a test execution)
+    // Find or create a test scenario for this agent
+    // We create a dummy scenario to satisfy the foreign key constraint
+    const testScenarioName = `[Test] ${agent.name}`;
+    let testScenario = await db.query.scenarios.findFirst({
+      where: and(
+        eq(scenarios.teamId, agent.teamId),
+        eq(scenarios.name, testScenarioName)
+      ),
+    });
+
+    if (!testScenario) {
+      [testScenario] = await db.insert(scenarios).values({
+        teamId: agent.teamId,
+        name: testScenarioName,
+        description: `Test scenario for agent: ${agent.name}`,
+        orchestrationDefinition: { nodes: [], edges: [] },
+        triggerType: 'api',
+        isActive: false, // Not a real scenario, just for testing
+        createdById: user.id,
+      }).returning();
+    }
+
+    // Find or create a test scenario version
+    let testScenarioVersion = await db.query.scenarioVersions.findFirst({
+      where: and(
+        eq(scenarioVersions.scenarioId, testScenario.id),
+        eq(scenarioVersions.version, 1)
+      ),
+    });
+
+    if (!testScenarioVersion) {
+      [testScenarioVersion] = await db.insert(scenarioVersions).values({
+        scenarioId: testScenario.id,
+        version: 1,
+        name: testScenarioName,
+        description: `Test version for agent: ${agent.name}`,
+        orchestrationDefinition: { nodes: [], edges: [] },
+        isActive: true,
+        createdById: user.id,
+      }).returning();
+    }
+
+    // Create a test scenario execution
     const [testScenarioExecution] = await db.insert(scenarioExecutions).values({
-      scenarioVersionId: activeVersion.id, // Reuse version ID for simplicity
+      scenarioVersionId: testScenarioVersion.id,
       status: 'running',
       input,
       triggeredById: user.id,
