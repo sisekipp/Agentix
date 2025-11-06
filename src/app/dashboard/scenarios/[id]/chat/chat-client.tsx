@@ -96,9 +96,14 @@ export function ChatClient({
     try {
       const result = await sendMessage(conversation.id, userMessage);
 
-      if (result.success && result.execution) {
-        // Refresh to get the assistant's response
-        router.refresh();
+      if (result.success && result.messages) {
+        // Replace optimistic message with real messages from server
+        setMessages((prev) => {
+          // Remove the optimistic message
+          const filtered = prev.filter((m) => m.id !== optimisticUserMessage.id);
+          // Add the real user and assistant messages
+          return [...filtered, ...result.messages];
+        });
       } else {
         throw new Error(result.error || 'Failed to send message');
       }

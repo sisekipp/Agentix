@@ -938,12 +938,12 @@ export async function sendMessage(conversationId: string, message: string) {
     }
 
     // Add user message
-    await db.insert(conversationMessages).values({
+    const [userMsg] = await db.insert(conversationMessages).values({
       conversationId: conversation.id,
       role: 'user',
       content: message,
       createdAt: new Date(),
-    });
+    }).returning();
 
     // Execute scenario with conversation context
     const result = await ScenarioEngine.executeScenario({
@@ -968,13 +968,13 @@ export async function sendMessage(conversationId: string, message: string) {
       assistantContent = "Execution completed but no output was generated.";
     }
 
-    await db.insert(conversationMessages).values({
+    const [assistantMsg] = await db.insert(conversationMessages).values({
       conversationId: conversation.id,
       role: 'assistant',
       content: assistantContent,
       scenarioExecutionId: result.executionId,
       createdAt: new Date(),
-    });
+    }).returning();
 
     // Update conversation last message time
     await db
@@ -982,7 +982,11 @@ export async function sendMessage(conversationId: string, message: string) {
       .set({ lastMessageAt: new Date() })
       .where(eq(conversations.id, conversationId));
 
-    return { success: true, execution: result };
+    return {
+      success: true,
+      execution: result,
+      messages: [userMsg, assistantMsg]  // Return new messages for instant UI update
+    };
   } catch (error) {
     console.error("Failed to send message:", error);
     return { error: "Failed to send message" };

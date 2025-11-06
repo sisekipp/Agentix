@@ -283,8 +283,9 @@ export class ScenarioEngine {
             throw new Error(`No active agent version found for: ${config.agentId}`);
           }
 
-          // Process input with context substitution
-          const processedInput = this.processTemplateObject(config.input || {}, context);
+          // CRITICAL FIX: Use context.input (from scenario trigger) instead of config.input
+          // The agent should receive the input that was passed to the scenario
+          const processedInput = context.input || {};
 
           // Execute agent
           const agentResult = await AgentEngine.executeAgent({
