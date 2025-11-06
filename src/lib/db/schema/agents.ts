@@ -106,7 +106,7 @@ export const scenarioVersions = pgTable("scenario_versions", {
 export const scenarioExecutions = pgTable("scenario_executions", {
   id: uuid("id").defaultRandom().primaryKey(),
   scenarioVersionId: uuid("scenario_version_id")
-    .references(() => scenarioVersions.id)
+    .references(() => scenarioVersions.id, { onDelete: "cascade" })
     .notNull(),
 
   // Für Chat-Trigger: Link zur Conversation
