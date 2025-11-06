@@ -548,6 +548,12 @@ export async function updateScenarioDefinition(
       return { error: "No active scenario version found" };
     }
 
+    // Validate definition - prevent saving empty scenarios
+    if (!definition || !definition.nodes || definition.nodes.length === 0) {
+      console.warn('Attempted to save scenario with no nodes, rejecting update');
+      return { error: "Cannot save scenario with no nodes. Please add at least a trigger node." };
+    }
+
     // Update scenario definition
     const [updatedVersion] = await db
       .update(scenarioVersions)
