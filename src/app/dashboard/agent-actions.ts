@@ -377,6 +377,24 @@ export async function createScenario(formData: FormData) {
       return { error: "Access denied - you are not a member of this team" };
     }
 
+    // Create initial orchestration with trigger node
+    const initialOrchestration = {
+      nodes: [
+        {
+          id: 'trigger-node',
+          type: 'scenario-trigger',
+          position: { x: 250, y: 100 },
+          data: {
+            label: 'Trigger',
+            config: {
+              triggerType,
+            },
+          },
+        },
+      ],
+      edges: [],
+    };
+
     // Create scenario
     const [scenario] = await db
       .insert(scenarios)
@@ -384,7 +402,7 @@ export async function createScenario(formData: FormData) {
         teamId,
         name,
         description: description || null,
-        orchestrationDefinition: { nodes: [], edges: [] }, // Empty scenario definition
+        orchestrationDefinition: initialOrchestration,
         triggerType,
         triggerConfig: {},
         isActive: true,
@@ -398,7 +416,7 @@ export async function createScenario(formData: FormData) {
       version: 1,
       name: "Initial version",
       description: "Initial scenario version",
-      orchestrationDefinition: { nodes: [], edges: [] },
+      orchestrationDefinition: initialOrchestration,
       isActive: true,
       createdById: user.id,
     });
@@ -899,11 +917,24 @@ export async function sendMessage(conversationId: string, message: string) {
     });
 
     // Add assistant response
-    const assistantMessage = result.output?.results || result.output;
+    let assistantContent: string;
+
+    if (result.error) {
+      // If execution failed, store error message
+      assistantContent = `Sorry, I encountered an error: ${result.error}`;
+    } else if (result.output?.results || result.output) {
+      // If execution succeeded, store output
+      const assistantMessage = result.output?.results || result.output;
+      assistantContent = JSON.stringify(assistantMessage);
+    } else {
+      // Fallback: no output available
+      assistantContent = "Execution completed but no output was generated.";
+    }
+
     await db.insert(conversationMessages).values({
       conversationId: conversation.id,
       role: 'assistant',
-      content: JSON.stringify(assistantMessage),
+      content: assistantContent,
       scenarioExecutionId: result.executionId,
       createdAt: new Date(),
     });
