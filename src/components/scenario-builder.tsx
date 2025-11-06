@@ -165,6 +165,7 @@ const nodeTypes: NodeTypes = {
 interface ScenarioBuilderProps {
   initialDefinition?: ScenarioDefinition;
   onSave?: (definition: ScenarioDefinition) => void;
+  onChange?: (definition: ScenarioDefinition) => void;
   readOnly?: boolean;
   agents?: AgentOption[];
 }
@@ -172,6 +173,7 @@ interface ScenarioBuilderProps {
 export function ScenarioBuilder({
   initialDefinition,
   onSave,
+  onChange,
   readOnly = false,
   agents = [],
 }: ScenarioBuilderProps) {
@@ -192,6 +194,17 @@ export function ScenarioBuilder({
     nodeType: '',
     nodeData: null,
   });
+
+  // Notify parent of changes whenever nodes or edges update
+  React.useEffect(() => {
+    if (onChange) {
+      const definition: ScenarioDefinition = {
+        nodes: nodes as unknown as ScenarioDefinition['nodes'],
+        edges: edges as unknown as ScenarioDefinition['edges'],
+      };
+      onChange(definition);
+    }
+  }, [nodes, edges, onChange]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),

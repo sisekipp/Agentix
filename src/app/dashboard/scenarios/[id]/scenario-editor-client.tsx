@@ -40,11 +40,13 @@ export function ScenarioEditorClient({
     version?.orchestrationDefinition || { nodes: [], edges: [] }
   );
 
-  const handleSave = async (definition: ScenarioDefinition) => {
+  const handleChange = (definition: ScenarioDefinition) => {
     setCurrentDefinition(definition);
+  };
 
+  const handleSave = async () => {
     startTransition(async () => {
-      const result = await updateScenarioDefinition(scenario.id, definition);
+      const result = await updateScenarioDefinition(scenario.id, currentDefinition);
 
       if (result.error) {
         toast({
@@ -170,7 +172,7 @@ export function ScenarioEditorClient({
           </Button>
 
           <Button
-            onClick={() => handleSave(currentDefinition)}
+            onClick={handleSave}
             disabled={isPending}
             size="sm"
           >
@@ -183,7 +185,7 @@ export function ScenarioEditorClient({
       <div className="flex-1 overflow-hidden">
         <ScenarioBuilder
           initialDefinition={currentDefinition}
-          onSave={handleSave}
+          onChange={handleChange}
           agents={agents}
         />
       </div>
