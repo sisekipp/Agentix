@@ -26,6 +26,7 @@ import type { Node } from '@xyflow/react';
 interface AgentNodeConfigDialogProps {
   node: Node;
   availableTools: any[];
+  availableProviders: any[];
   onSave: (nodeId: string, config: any, label: string) => void;
   onDelete: (nodeId: string) => void;
   onClose: () => void;
@@ -34,6 +35,7 @@ interface AgentNodeConfigDialogProps {
 export function AgentNodeConfigDialog({
   node,
   availableTools,
+  availableProviders,
   onSave,
   onDelete,
   onClose,
@@ -97,6 +99,41 @@ export function AgentNodeConfigDialog({
       case 'agent/LLM':
         return (
           <div className="space-y-4">
+            <div>
+              <Label>LLM Provider</Label>
+              <Select
+                value={config.llmProviderId || ''}
+                onValueChange={(value) => {
+                  const selectedProvider = availableProviders.find((p) => p.id === value);
+                  setConfig({
+                    ...config,
+                    llmProviderId: value,
+                    model: selectedProvider?.model || config.model
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select LLM provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableProviders.length === 0 ? (
+                    <div className="p-2 text-sm text-gray-500">
+                      No LLM providers configured. Please add one in team settings.
+                    </div>
+                  ) : (
+                    availableProviders.map((provider) => (
+                      <SelectItem key={provider.id} value={provider.id}>
+                        {provider.name} ({provider.provider} - {provider.model})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                Select which API key/provider to use for this LLM call
+              </p>
+            </div>
+
             <div>
               <Label>Model</Label>
               <Select

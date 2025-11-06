@@ -26,6 +26,7 @@ interface AgentBuilderProps {
   definition: AgentDefinition;
   onChange: (definition: AgentDefinition) => void;
   availableTools: any[];
+  availableProviders: any[];
 }
 
 // Custom Node Components
@@ -182,6 +183,7 @@ export function AgentBuilder({
   definition,
   onChange,
   availableTools,
+  availableProviders,
 }: AgentBuilderProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(definition.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(definition.edges as Edge[]);
@@ -322,6 +324,7 @@ export function AgentBuilder({
         <AgentNodeConfigDialog
           node={selectedNode}
           availableTools={availableTools}
+          availableProviders={availableProviders}
           onSave={handleConfigSave}
           onDelete={handleDeleteNode}
           onClose={() => {

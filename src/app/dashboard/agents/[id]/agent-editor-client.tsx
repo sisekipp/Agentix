@@ -16,6 +16,7 @@ interface AgentEditorClientProps {
   agent: any;
   activeVersion: any;
   availableTools: any[];
+  availableProviders: any[];
   user: any;
 }
 
@@ -33,6 +34,7 @@ export function AgentEditorClient({
   agent,
   activeVersion,
   availableTools,
+  availableProviders,
   user,
 }: AgentEditorClientProps) {
   const router = useRouter();
@@ -238,6 +240,7 @@ export function AgentEditorClient({
             definition={workflowDefinition}
             onChange={setWorkflowDefinition}
             availableTools={availableTools}
+            availableProviders={availableProviders}
           />
         </div>
       </div>

@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth-server';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { agents, agentVersions } from '@/lib/db/schema/agents';
+import { llmProviders } from '@/lib/db/schema/providers';
 import { eq, and, desc } from 'drizzle-orm';
 
 export default async function AgentEditorPage({
@@ -50,11 +51,20 @@ export default async function AgentEditorPage({
     { id: 'file-operations', name: 'File Operations', icon: '📁', description: 'Read and write files' },
   ];
 
+  // Fetch available LLM providers for this team
+  const providers = await db.query.llmProviders.findMany({
+    where: and(
+      eq(llmProviders.teamId, agent.teamId),
+      eq(llmProviders.isActive, true)
+    ),
+  });
+
   return (
     <AgentEditorClient
       agent={agent}
       activeVersion={activeVersion}
       availableTools={availableTools}
+      availableProviders={providers}
       user={user}
     />
   );
