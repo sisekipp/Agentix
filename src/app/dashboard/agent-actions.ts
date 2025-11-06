@@ -164,6 +164,27 @@ export async function getAgentById(agentId: string) {
   }
 }
 
+export async function updateAgent(formData: FormData) {
+  const agentId = formData.get("id") as string;
+  const name = formData.get("name") as string;
+  const description = formData.get("description") as string | null;
+  const systemPrompt = formData.get("systemPrompt") as string | null;
+  const workflowDefinitionStr = formData.get("workflowDefinition") as string;
+
+  if (!agentId) {
+    return { error: "Agent ID is required" };
+  }
+
+  const workflowDefinition = workflowDefinitionStr ? JSON.parse(workflowDefinitionStr) : undefined;
+
+  const metadata: Partial<AgentMetadata> = {};
+  if (name) metadata.name = name;
+  if (description !== undefined) metadata.description = description;
+  if (systemPrompt !== undefined) metadata.systemPrompt = systemPrompt;
+
+  return updateAgentDefinition(agentId, workflowDefinition, metadata);
+}
+
 export async function updateAgentDefinition(
   agentId: string,
   definition: AgentDefinition,
