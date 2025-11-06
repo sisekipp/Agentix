@@ -54,32 +54,37 @@ export async function createAgent(formData: FormData) {
       return { error: "Access denied - you are not a member of this team" };
     }
 
-    // Create agent
-    const [agent] = await db
-      .insert(agents)
-      .values({
-        teamId,
-        name,
-        description: description || null,
-        workflowDefinition: { nodes: [], edges: [] }, // Empty agent definition
-        icon: icon || "🤖",
-        color: color || "#3b82f6",
-        createdById: user.id,
-      })
-      .returning();
+    // Use transaction to ensure agent and version are created atomically
+    const result = await db.transaction(async (tx) => {
+      // Create agent
+      const [agent] = await tx
+        .insert(agents)
+        .values({
+          teamId,
+          name,
+          description: description || null,
+          workflowDefinition: { nodes: [], edges: [] }, // Empty agent definition
+          icon: icon || "🤖",
+          color: color || "#3b82f6",
+          createdById: user.id,
+        })
+        .returning();
 
-    // Create initial version
-    await db.insert(agentVersions).values({
-      agentId: agent.id,
-      version: 1,
-      name: "Initial version",
-      description: "Initial agent version",
-      workflowDefinition: { nodes: [], edges: [] },
-      isActive: true,
-      createdById: user.id,
+      // Create initial version
+      await tx.insert(agentVersions).values({
+        agentId: agent.id,
+        version: 1,
+        name: "Initial version",
+        description: "Initial agent version",
+        workflowDefinition: { nodes: [], edges: [] },
+        isActive: true,
+        createdById: user.id,
+      });
+
+      return agent;
     });
 
-    return { success: true, agent };
+    return { success: true, agent: result };
   } catch (error) {
     console.error("Failed to create agent:", error);
     return { error: `Failed to create agent: ${error instanceof Error ? error.message : String(error)}` };
@@ -222,24 +227,30 @@ export async function updateAgentDefinition(
       return { error: "Access denied" };
     }
 
-    // Get active version, or create one if none exists
+    // Get active version
     let activeVersion = agent.versions[0];
     if (!activeVersion) {
-      console.warn(`Agent ${agentId} has no active version, creating one...`);
+      // DATA INTEGRITY ISSUE: Agent exists without active version
+      // This should not happen with proper transaction handling in createAgent
+      console.error(`DATA INTEGRITY ERROR: Agent ${agentId} (${agent.name}) has no active version!`);
+      console.error('This indicates a database inconsistency. Creating repair version...');
 
-      // Auto-create an active version to fix data inconsistency
+      // Create a repair version to fix the inconsistency
+      // This is a recovery mechanism, not normal operation
       const [newVersion] = await db.insert(agentVersions).values({
         agentId: agent.id,
         version: 1,
-        name: "Initial version",
-        description: "Auto-created initial version",
+        name: "Recovery version",
+        description: "Auto-created to repair data inconsistency",
         workflowDefinition: definition || { nodes: [], edges: [] },
         isActive: true,
         createdById: user.id,
       }).returning();
 
       activeVersion = newVersion;
-      console.log(`Created new active version ${activeVersion.id} for agent ${agentId}`);
+      console.log(`✓ Created recovery version ${activeVersion.id} for agent ${agentId}`);
+
+      // TODO: Investigate why this agent had no version and fix root cause
     }
 
     // Update agent definition in version
@@ -409,33 +420,38 @@ export async function createScenario(formData: FormData) {
       edges: [],
     };
 
-    // Create scenario
-    const [scenario] = await db
-      .insert(scenarios)
-      .values({
-        teamId,
-        name,
-        description: description || null,
+    // Use transaction to ensure scenario and version are created atomically
+    const result = await db.transaction(async (tx) => {
+      // Create scenario
+      const [scenario] = await tx
+        .insert(scenarios)
+        .values({
+          teamId,
+          name,
+          description: description || null,
+          orchestrationDefinition: initialOrchestration,
+          triggerType,
+          triggerConfig: {},
+          isActive: true,
+          createdById: user.id,
+        })
+        .returning();
+
+      // Create initial version
+      await tx.insert(scenarioVersions).values({
+        scenarioId: scenario.id,
+        version: 1,
+        name: "Initial version",
+        description: "Initial scenario version",
         orchestrationDefinition: initialOrchestration,
-        triggerType,
-        triggerConfig: {},
         isActive: true,
         createdById: user.id,
-      })
-      .returning();
+      });
 
-    // Create initial version
-    await db.insert(scenarioVersions).values({
-      scenarioId: scenario.id,
-      version: 1,
-      name: "Initial version",
-      description: "Initial scenario version",
-      orchestrationDefinition: initialOrchestration,
-      isActive: true,
-      createdById: user.id,
+      return scenario;
     });
 
-    return { success: true, scenario };
+    return { success: true, scenario: result };
   } catch (error) {
     console.error("Failed to create scenario:", error);
     return { error: `Failed to create scenario: ${error instanceof Error ? error.message : String(error)}` };
