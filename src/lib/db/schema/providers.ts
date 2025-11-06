@@ -1,10 +1,10 @@
 import { pgTable, uuid, varchar, timestamp, text, jsonb, boolean } from "drizzle-orm/pg-core";
-import { organizations } from "./organizations";
+import { teams } from "./teams";
 
 export const llmProviders = pgTable("llm_providers", {
   id: uuid("id").defaultRandom().primaryKey(),
-  organizationId: uuid("organization_id")
-    .references(() => organizations.id, { onDelete: "cascade" })
+  teamId: uuid("team_id")
+    .references(() => teams.id, { onDelete: "cascade" })
     .notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   provider: varchar("provider", { length: 100 }).notNull(), // openai, anthropic, google, etc.
@@ -18,8 +18,8 @@ export const llmProviders = pgTable("llm_providers", {
 
 export const tools = pgTable("tools", {
   id: uuid("id").defaultRandom().primaryKey(),
-  organizationId: uuid("organization_id")
-    .references(() => organizations.id, { onDelete: "cascade" })
+  teamId: uuid("team_id")
+    .references(() => teams.id, { onDelete: "cascade" })
     .notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),

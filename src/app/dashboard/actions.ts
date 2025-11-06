@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { organizations, teams, teamMembers, workflows, workflowVersions, users } from "@/lib/db/schema";
+import { organizations, teams, teamMembers, workflows, workflowVersions, users, llmProviders, tools } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth-server";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -694,5 +694,257 @@ export async function updateWorkflowDefinition(
   } catch (error) {
     console.error("Failed to update workflow definition:", error);
     return { error: "Failed to update workflow definition" };
+  }
+}
+
+// Provider Actions
+
+export async function getProvidersByTeam(teamId: string) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  try {
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied", providers: [] };
+    }
+
+    const providerList = await db.query.llmProviders.findMany({
+      where: eq(llmProviders.teamId, teamId),
+      orderBy: [desc(llmProviders.createdAt)],
+    });
+
+    // Don't return API keys to client
+    const providersWithoutKeys = providerList.map((p) => ({
+      id: p.id,
+      teamId: p.teamId,
+      name: p.name,
+      provider: p.provider,
+      model: p.model,
+      isActive: p.isActive,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    }));
+
+    return { providers: providersWithoutKeys };
+  } catch (error) {
+    console.error("Failed to fetch providers:", error);
+    return { error: "Failed to fetch providers", providers: [] };
+  }
+}
+
+export async function createProvider(formData: FormData) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  const teamId = formData.get("teamId") as string;
+  const name = formData.get("name") as string;
+  const provider = formData.get("provider") as string;
+  const model = formData.get("model") as string;
+  const apiKey = formData.get("apiKey") as string;
+
+  if (!teamId || !name || !provider || !model || !apiKey) {
+    return { error: "All fields are required" };
+  }
+
+  try {
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied" };
+    }
+
+    // Create provider
+    const [newProvider] = await db
+      .insert(llmProviders)
+      .values({
+        teamId,
+        name,
+        provider,
+        model,
+        apiKey, // TODO: Encrypt this
+        configuration: {},
+        isActive: true,
+      })
+      .returning();
+
+    return {
+      success: true,
+      provider: {
+        id: newProvider.id,
+        teamId: newProvider.teamId,
+        name: newProvider.name,
+        provider: newProvider.provider,
+        model: newProvider.model,
+        isActive: newProvider.isActive,
+      }
+    };
+  } catch (error) {
+    console.error("Failed to create provider:", error);
+    return { error: "Failed to create provider" };
+  }
+}
+
+export async function updateProvider(providerId: string, formData: FormData) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  const name = formData.get("name") as string;
+  const model = formData.get("model") as string;
+  const apiKey = formData.get("apiKey") as string | null;
+
+  if (!name || !model) {
+    return { error: "Name and model are required" };
+  }
+
+  try {
+    // Get provider to verify access
+    const provider = await db.query.llmProviders.findFirst({
+      where: eq(llmProviders.id, providerId),
+    });
+
+    if (!provider) {
+      return { error: "Provider not found" };
+    }
+
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, provider.teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied" };
+    }
+
+    // Update provider
+    const updateData: any = {
+      name,
+      model,
+      updatedAt: new Date(),
+    };
+
+    // Only update API key if provided
+    if (apiKey) {
+      updateData.apiKey = apiKey; // TODO: Encrypt this
+    }
+
+    const [updatedProvider] = await db
+      .update(llmProviders)
+      .set(updateData)
+      .where(eq(llmProviders.id, providerId))
+      .returning();
+
+    return {
+      success: true,
+      provider: {
+        id: updatedProvider.id,
+        teamId: updatedProvider.teamId,
+        name: updatedProvider.name,
+        provider: updatedProvider.provider,
+        model: updatedProvider.model,
+        isActive: updatedProvider.isActive,
+      }
+    };
+  } catch (error) {
+    console.error("Failed to update provider:", error);
+    return { error: "Failed to update provider" };
+  }
+}
+
+export async function deleteProvider(providerId: string) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  try {
+    // Get provider to verify access
+    const provider = await db.query.llmProviders.findFirst({
+      where: eq(llmProviders.id, providerId),
+    });
+
+    if (!provider) {
+      return { error: "Provider not found" };
+    }
+
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, provider.teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied" };
+    }
+
+    // Delete provider
+    await db.delete(llmProviders).where(eq(llmProviders.id, providerId));
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete provider:", error);
+    return { error: "Failed to delete provider" };
+  }
+}
+
+export async function toggleProviderActive(providerId: string) {
+  const session = await requireAuth();
+  const user = session.user;
+
+  try {
+    // Get provider to verify access
+    const provider = await db.query.llmProviders.findFirst({
+      where: eq(llmProviders.id, providerId),
+    });
+
+    if (!provider) {
+      return { error: "Provider not found" };
+    }
+
+    // Verify user is a member of the team
+    const teamMembership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(teamMembers.teamId, provider.teamId),
+        eq(teamMembers.userId, user.id)
+      ),
+    });
+
+    if (!teamMembership) {
+      return { error: "Access denied" };
+    }
+
+    // Toggle active status
+    const [updatedProvider] = await db
+      .update(llmProviders)
+      .set({
+        isActive: !provider.isActive,
+        updatedAt: new Date(),
+      })
+      .where(eq(llmProviders.id, providerId))
+      .returning();
+
+    return {
+      success: true,
+      isActive: updatedProvider.isActive,
+    };
+  } catch (error) {
+    console.error("Failed to toggle provider status:", error);
+    return { error: "Failed to toggle provider status" };
   }
 }

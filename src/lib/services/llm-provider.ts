@@ -23,7 +23,7 @@ export interface LLMProvider {
   name: string;
   provider: string;
   model: string;
-  organizationId: string;
+  teamId: string;
 }
 
 /**
@@ -116,21 +116,21 @@ export class LLMProviderService {
   }
 
   /**
-   * Get all active providers for an organization
+   * Get all active providers for a team
    */
-  static async getOrganizationProviders(organizationId: string) {
+  static async getTeamProviders(teamId: string) {
     return await db
       .select({
         id: llmProviders.id,
         name: llmProviders.name,
         provider: llmProviders.provider,
         model: llmProviders.model,
-        organizationId: llmProviders.organizationId,
+        teamId: llmProviders.teamId,
       })
       .from(llmProviders)
       .where(
         and(
-          eq(llmProviders.organizationId, organizationId),
+          eq(llmProviders.teamId, teamId),
           eq(llmProviders.isActive, true)
         )
       );
@@ -162,7 +162,7 @@ export class LLMProviderService {
    * Create a new LLM provider
    */
   static async createProvider(data: {
-    organizationId: string;
+    teamId: string;
     name: string;
     provider: string;
     model: string;
@@ -172,7 +172,7 @@ export class LLMProviderService {
     const [provider] = await db
       .insert(llmProviders)
       .values({
-        organizationId: data.organizationId,
+        teamId: data.teamId,
         name: data.name,
         provider: data.provider,
         model: data.model,
