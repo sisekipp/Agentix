@@ -157,24 +157,14 @@ export function AgentEditorClient({
     setTestMessages((prev) => [...prev, pendingMessage]);
 
     try {
-      // Parse input: if it's JSON, use it as-is; otherwise, send as plain text
-      let parsedInput: any;
-      try {
-        // Try to parse as JSON first
-        parsedInput = JSON.parse(testInput);
-      } catch {
-        // If not JSON, send as plain text string
-        parsedInput = testInput;
-      }
-
-      // Call test API endpoint
+      // Call test API endpoint - send input as plain text, LLM can handle JSON if needed
       const response = await fetch(`/api/agents/${agent.id}/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          input: parsedInput,
+          input: testInput,
         }),
       });
 
