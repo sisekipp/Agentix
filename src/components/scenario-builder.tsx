@@ -195,8 +195,16 @@ export function ScenarioBuilder({
     nodeData: null,
   });
 
-  // Notify parent of changes whenever nodes or edges update
+  // Track if this is the first render to avoid calling onChange on initial mount
+  const isFirstRender = React.useRef(true);
+
+  // Notify parent of changes whenever nodes or edges update (but not on initial mount)
   React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     if (onChange) {
       const definition: ScenarioDefinition = {
         nodes: nodes as unknown as ScenarioDefinition['nodes'],

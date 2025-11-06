@@ -155,12 +155,21 @@ export class ScenarioEngine {
       nodeMap.set(node.id, node);
     }
 
+    // Debug: Log definition structure
+    console.log('Scenario definition:', {
+      nodeCount: definition.nodes.length,
+      edgeCount: definition.edges.length,
+      nodes: definition.nodes.map(n => ({ id: n.id, type: n.type, label: n.data?.label })),
+      edges: definition.edges.map(e => ({ source: e.source, target: e.target })),
+    });
+
     // Find trigger node
     const triggerNode = definition.nodes.find(
       (n) => n.type === 'scenario-trigger'
     );
 
     if (!triggerNode) {
+      console.error('No trigger node found! Available nodes:', definition.nodes);
       throw new Error('Scenario must have a trigger node');
     }
 
