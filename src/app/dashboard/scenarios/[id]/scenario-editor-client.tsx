@@ -57,21 +57,35 @@ export function ScenarioEditorClient({
     setExecutionResult(null);
 
     try {
-      const result = await executeScenario(scenario.id, {
-        // Add any input data here
+      // Call test API endpoint
+      const response = await fetch(`/api/scenarios/${scenario.id}/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          input: {}, // Can be customized with a test input dialog
+        }),
       });
 
-      if (result.error) {
-        alert(`Error: ${result.error}`);
-      } else {
-        setExecutionResult(result.execution);
-        alert(
-          `Scenario executed! Status: ${result.execution?.status}\nExecution ID: ${result.execution?.executionId}`
-        );
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.message || 'Test execution failed');
       }
-    } catch (error) {
+
+      setExecutionResult(result);
+      alert(
+        `Scenario executed! Status: ${result.status}\nExecution ID: ${result.executionId}`
+      );
+
+      // Navigate to execution details
+      if (result.executionId) {
+        router.push(`/dashboard/scenarios/${scenario.id}/executions/${result.executionId}`);
+      }
+    } catch (error: any) {
       console.error('Execution error:', error);
-      alert('Failed to execute scenario');
+      alert(`Failed to execute scenario: ${error.message}`);
     } finally {
       setIsExecuting(false);
     }

@@ -77,14 +77,34 @@ export function AgentEditorClient({
   const handleTest = async () => {
     try {
       setIsTesting(true);
-      // For now, we'll just show a toast. Later we can implement actual test execution
-      toast({
-        title: 'Test Run',
-        description: 'Test execution will be implemented soon.',
+
+      // Call test API endpoint
+      const response = await fetch(`/api/agents/${agent.id}/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          input: {}, // Can be customized with a test input dialog
+        }),
       });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.message || 'Test execution failed');
+      }
+
+      toast({
+        title: 'Test Run Completed',
+        description: `Status: ${result.status}. Execution ID: ${result.executionId}`,
+      });
+
+      // Optionally show results in a dialog
+      console.log('Test execution result:', result);
     } catch (error: any) {
       toast({
-        title: 'Error',
+        title: 'Test Failed',
         description: error.message || 'Failed to test agent',
         variant: 'destructive',
       });
