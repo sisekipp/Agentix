@@ -304,9 +304,10 @@ export class ScenarioEngine {
               // Use the output of the previous node
               const previousNodeResult = context[sourceNodeId];
               if (previousNodeResult && previousNodeResult.output) {
-                // Previous node is an agent - use its output
-                processedInput = previousNodeResult.output || {};
-                console.log(`Using previous agent output:`, processedInput);
+                // Previous node is an agent - extract the actual message from the agent output
+                const extractedMessage = this.extractAgentMessage(previousNodeResult.output);
+                processedInput = { message: extractedMessage };
+                console.log(`Using previous agent output (extracted):`, processedInput);
               } else if (previousNodeResult) {
                 // Previous node is something else - use the whole result
                 processedInput = previousNodeResult;
@@ -715,5 +716,37 @@ export class ScenarioEngine {
     }
 
     return current;
+  }
+
+  /**
+   * Extract the actual message/result from an agent output
+   * Agent output structure: { results: { 'node-id': { result: 'actual text' } }, finalContext: {...} }
+   */
+  private static extractAgentMessage(agentOutput: any): string {
+    try {
+      // Check if the output has the expected structure
+      if (agentOutput && agentOutput.results) {
+        // Get the first result from the results object
+        const resultKeys = Object.keys(agentOutput.results);
+        if (resultKeys.length > 0) {
+          const firstResult = agentOutput.results[resultKeys[0]];
+
+          // Extract the 'result' field if it exists
+          if (firstResult && typeof firstResult === 'object' && 'result' in firstResult) {
+            return String(firstResult.result);
+          }
+        }
+      }
+
+      // Fallback: if structure is unexpected, try to stringify
+      if (typeof agentOutput === 'string') {
+        return agentOutput;
+      }
+
+      return JSON.stringify(agentOutput);
+    } catch (error) {
+      console.error('Error extracting agent message:', error);
+      return JSON.stringify(agentOutput);
+    }
   }
 }
