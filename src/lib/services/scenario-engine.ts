@@ -569,9 +569,21 @@ export class ScenarioEngine {
     const [version] = await db
       .select()
       .from(agentVersions)
-      .where(eq(agentVersions.agentId, agentId))
-      .where(eq(agentVersions.isActive, true))
+      .where(
+        and(
+          eq(agentVersions.agentId, agentId),
+          eq(agentVersions.isActive, true)
+        )
+      )
       .limit(1);
+
+    console.log(`getActiveAgentVersion for agentId ${agentId}:`, {
+      found: !!version,
+      versionId: version?.id,
+      versionAgentId: version?.agentId,
+      versionName: version?.name,
+      isActive: version?.isActive,
+    });
 
     return version;
   }
