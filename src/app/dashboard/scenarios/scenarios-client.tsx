@@ -219,7 +219,11 @@ export function ScenariosClient({
                     </p>
                     <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
                       <span>
-                        Created {new Date(scenario.createdAt).toLocaleDateString()}
+                        Created {new Date(scenario.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
                       </span>
                       <span className={`px-2 py-1 rounded ${scenario.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                         {scenario.isActive ? 'Active' : 'Inactive'}

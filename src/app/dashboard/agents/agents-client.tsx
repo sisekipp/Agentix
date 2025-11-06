@@ -203,7 +203,11 @@ export function AgentsClient({
                   </p>
                   <div className="mt-4 flex items-center text-xs text-gray-500">
                     <span>
-                      Created {new Date(agent.createdAt).toLocaleDateString()}
+                      Created {new Date(agent.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
                     </span>
                   </div>
                 </div>

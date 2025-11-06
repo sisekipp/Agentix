@@ -214,7 +214,11 @@ export function ChatClient({
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {new Date(conv.lastMessageAt).toLocaleDateString()}
+                    {new Date(conv.lastMessageAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
                   </div>
                   <div
                     className={`text-xs mt-1 inline-block px-2 py-0.5 rounded ${

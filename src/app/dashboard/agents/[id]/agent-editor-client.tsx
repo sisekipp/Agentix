@@ -247,7 +247,11 @@ export function AgentEditorClient({
                   <p>Current Version: {activeVersion?.version || 1}</p>
                   <p>
                     Last Updated:{' '}
-                    {new Date(agent.updatedAt).toLocaleDateString()}
+                    {new Date(agent.updatedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
                   </p>
                   <p>Created By: {user.name || user.email}</p>
                 </div>
