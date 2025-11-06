@@ -160,6 +160,7 @@ export async function createWorkflow(formData: FormData) {
     }
 
     // Create workflow
+    console.log("Attempting to insert workflow into database...");
     const [workflow] = await db
       .insert(workflows)
       .values({
@@ -167,12 +168,15 @@ export async function createWorkflow(formData: FormData) {
         name,
         description: description || null,
         createdById: user.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
 
-    console.log("Workflow created:", workflow.id);
+    console.log("Workflow created successfully:", workflow.id);
 
     // Create initial version
+    console.log("Creating initial workflow version...");
     await db.insert(workflowVersions).values({
       workflowId: workflow.id,
       version: 1,
@@ -181,13 +185,15 @@ export async function createWorkflow(formData: FormData) {
       definition: { nodes: [], edges: [] }, // Empty workflow definition
       isActive: true,
       createdById: user.id,
+      createdAt: new Date(),
     });
 
-    console.log("Workflow version created for:", workflow.id);
+    console.log("Workflow version created successfully for:", workflow.id);
 
     return { success: true, workflow };
   } catch (error) {
-    console.error("Failed to create workflow:", error);
+    console.error("Failed to create workflow - FULL ERROR:", error);
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
     return { error: `Failed to create workflow: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
