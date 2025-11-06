@@ -132,7 +132,10 @@ export async function createWorkflow(formData: FormData) {
   const description = formData.get("description") as string | null;
   const teamId = formData.get("teamId") as string;
 
+  console.log("Creating workflow:", { name, teamId, userId: user.id });
+
   if (!name || !teamId) {
+    console.log("Missing required fields:", { name: !!name, teamId: !!teamId });
     return { error: "Name and team are required" };
   }
 
@@ -145,8 +148,15 @@ export async function createWorkflow(formData: FormData) {
       ),
     });
 
+    console.log("Team membership check:", {
+      teamId,
+      userId: user.id,
+      isMember: !!teamMembership,
+      membership: teamMembership
+    });
+
     if (!teamMembership) {
-      return { error: "Access denied" };
+      return { error: "Access denied - you are not a member of this team" };
     }
 
     // Create workflow
@@ -160,6 +170,8 @@ export async function createWorkflow(formData: FormData) {
       })
       .returning();
 
+    console.log("Workflow created:", workflow.id);
+
     // Create initial version
     await db.insert(workflowVersions).values({
       workflowId: workflow.id,
@@ -171,10 +183,12 @@ export async function createWorkflow(formData: FormData) {
       createdById: user.id,
     });
 
+    console.log("Workflow version created for:", workflow.id);
+
     return { success: true, workflow };
   } catch (error) {
     console.error("Failed to create workflow:", error);
-    return { error: "Failed to create workflow" };
+    return { error: `Failed to create workflow: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
 

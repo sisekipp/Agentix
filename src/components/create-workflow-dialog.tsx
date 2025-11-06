@@ -67,7 +67,15 @@ export function CreateWorkflowDialog({
     const formData = new FormData(e.currentTarget);
     formData.set("teamId", selectedTeam);
 
+    console.log("Submitting workflow creation:", {
+      name: formData.get("name"),
+      teamId: selectedTeam,
+      description: formData.get("description"),
+    });
+
     const result = await createWorkflow(formData);
+
+    console.log("Workflow creation result:", result);
 
     if (result.error) {
       setError(result.error);
