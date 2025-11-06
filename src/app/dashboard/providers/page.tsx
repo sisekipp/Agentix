@@ -6,7 +6,7 @@ import { ProvidersClient } from "./providers-client";
 export default async function ProvidersPage({
   searchParams,
 }: {
-  searchParams: { org?: string; team?: string };
+  searchParams: Promise<{ org?: string; team?: string }>;
 }) {
   const session = await requireAuth();
 
@@ -14,8 +14,9 @@ export default async function ProvidersPage({
     redirect("/login");
   }
 
-  const organizationId = searchParams.org;
-  const teamId = searchParams.team;
+  const params = await searchParams;
+  const organizationId = params.org;
+  const teamId = params.team;
 
   if (!organizationId) {
     redirect("/dashboard");
