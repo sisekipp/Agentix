@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, Workflow, MessageSquare, Zap, Webhook, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Workflow, MessageSquare, Zap, Webhook, Clock, LayoutDashboard, Bot } from 'lucide-react';
 import { CreateScenarioDialog } from '@/components/create-scenario-dialog';
 import { deleteScenario } from '../agent-actions';
+import { LogoutButton } from '@/components/logout-button';
+import { OrganizationSelector } from '@/components/organization-selector';
 
 interface ScenariosClientProps {
   user: any;
@@ -37,8 +39,30 @@ export function ScenariosClient({
   scenarios,
 }: ScenariosClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const navigationItems = [
+    {
+      name: 'Dashboard',
+      href: `/dashboard${currentOrganizationId ? `?org=${currentOrganizationId}` : ''}`,
+      icon: LayoutDashboard,
+      current: pathname === '/dashboard',
+    },
+    {
+      name: 'Agents',
+      href: `/dashboard/agents${currentOrganizationId ? `?org=${currentOrganizationId}` : ''}`,
+      icon: Bot,
+      current: pathname === '/dashboard/agents',
+    },
+    {
+      name: 'Scenarios',
+      href: `/dashboard/scenarios${currentOrganizationId ? `?org=${currentOrganizationId}` : ''}`,
+      icon: Workflow,
+      current: pathname === '/dashboard/scenarios',
+    },
+  ];
 
   const handleDelete = async (scenarioId: string, scenarioName: string) => {
     if (!confirm(`Are you sure you want to delete "${scenarioName}"?`)) {
@@ -70,13 +94,59 @@ export function ScenariosClient({
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-bold text-gray-900">Agentix</h1>
+              <div className="h-6 w-px bg-gray-300" />
+              <div className="w-64">
+                <OrganizationSelector
+                  organizations={organizations}
+                  currentOrganizationId={currentOrganizationId}
+                  onOrganizationChange={(orgId) => router.push(`/dashboard/scenarios?org=${orgId}`)}
+                  onCreateNew={() => {}}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">{user.name}</span>
+              <LogoutButton />
+            </div>
+          </div>
+        </div>
+        {/* Navigation Tabs */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8" aria-label="Navigation">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => router.push(item.href)}
+                  className={`
+                    flex items-center gap-2 px-1 py-4 text-sm font-medium border-b-2 transition-colors
+                    ${
+                      item.current
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900'
+                    }
+                  `}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.name}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+        {/* Page Header */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                 <Workflow className="w-8 h-8" />
                 Scenarios
-              </h1>
+              </h2>
               <p className="mt-2 text-sm text-gray-600">
                 Orchestrate multiple agents with different triggers
               </p>

@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
-import { Plus, Building2, Users, Settings } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { Plus, Building2, Users, Settings, LayoutDashboard, Bot, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/components/logout-button";
@@ -67,6 +67,7 @@ export function DashboardClient({
   workflows,
 }: DashboardClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [showCreateOrgDialog, setShowCreateOrgDialog] = React.useState(false);
   const [showCreateTeamDialog, setShowCreateTeamDialog] = React.useState(false);
   const [showCreateWorkflowDialog, setShowCreateWorkflowDialog] = React.useState(false);
@@ -74,7 +75,9 @@ export function DashboardClient({
   const currentOrganization = organizations.find((org) => org.id === currentOrganizationId);
 
   function handleOrganizationChange(organizationId: string) {
-    router.push(`/dashboard?org=${organizationId}`);
+    // Preserve current path when changing organization
+    const currentPath = pathname || '/dashboard';
+    router.push(`${currentPath}?org=${organizationId}`);
   }
 
   function handleOrgCreated() {
@@ -92,6 +95,27 @@ export function DashboardClient({
   function handleWorkflowDeleted() {
     router.refresh();
   }
+
+  const navigationItems = [
+    {
+      name: 'Dashboard',
+      href: `/dashboard${currentOrganizationId ? `?org=${currentOrganizationId}` : ''}`,
+      icon: LayoutDashboard,
+      current: pathname === '/dashboard',
+    },
+    {
+      name: 'Agents',
+      href: `/dashboard/agents${currentOrganizationId ? `?org=${currentOrganizationId}` : ''}`,
+      icon: Bot,
+      current: pathname === '/dashboard/agents',
+    },
+    {
+      name: 'Scenarios',
+      href: `/dashboard/scenarios${currentOrganizationId ? `?org=${currentOrganizationId}` : ''}`,
+      icon: Workflow,
+      current: pathname === '/dashboard/scenarios',
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -116,6 +140,31 @@ export function DashboardClient({
               <LogoutButton />
             </div>
           </div>
+        </div>
+        {/* Navigation Tabs */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8" aria-label="Navigation">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => router.push(item.href)}
+                  className={`
+                    flex items-center gap-2 px-1 py-4 text-sm font-medium border-b-2 transition-colors
+                    ${
+                      item.current
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-zinc-600 hover:border-zinc-300 hover:text-zinc-900'
+                    }
+                  `}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.name}
+                </button>
+              );
+            })}
+          </nav>
         </div>
       </div>
 
