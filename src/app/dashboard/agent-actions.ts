@@ -14,7 +14,7 @@ import {
   teamMembers,
 } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth-server";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, ne } from "drizzle-orm";
 import { AgentEngine } from "@/lib/services/agent-engine";
 import { ScenarioEngine } from "@/lib/services/scenario-engine";
 import type {
@@ -564,6 +564,19 @@ export async function updateScenarioDefinition(
       console.warn('Attempted to save scenario with no nodes, rejecting update');
       return { error: "Cannot save scenario with no nodes. Please add at least a trigger node." };
     }
+
+    // DATA INTEGRITY FIX: Deactivate all other versions for this scenario
+    // This ensures only ONE version is active at a time
+    console.log('Deactivating other versions for scenario...');
+    await db
+      .update(scenarioVersions)
+      .set({ isActive: false })
+      .where(
+        and(
+          eq(scenarioVersions.scenarioId, scenarioId),
+          ne(scenarioVersions.id, activeVersion.id)
+        )
+      );
 
     // Update scenario definition
     console.log('Saving scenario definition to database...');
