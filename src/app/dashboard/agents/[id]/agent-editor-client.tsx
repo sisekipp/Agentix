@@ -157,6 +157,16 @@ export function AgentEditorClient({
     setTestMessages((prev) => [...prev, pendingMessage]);
 
     try {
+      // Parse input: if it's JSON, use it as-is; otherwise, send as plain text
+      let parsedInput: any;
+      try {
+        // Try to parse as JSON first
+        parsedInput = JSON.parse(testInput);
+      } catch {
+        // If not JSON, send as plain text string
+        parsedInput = testInput;
+      }
+
       // Call test API endpoint
       const response = await fetch(`/api/agents/${agent.id}/test`, {
         method: 'POST',
@@ -164,7 +174,7 @@ export function AgentEditorClient({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          input: { message: testInput },
+          input: parsedInput,
         }),
       });
 
