@@ -154,15 +154,28 @@ export function AgentNodeConfigDialog({
             </div>
 
             <div>
-              <Label>Prompt</Label>
+              <Label>System Prompt</Label>
+              <Textarea
+                value={config.systemPrompt || ''}
+                onChange={(e) => setConfig({ ...config, systemPrompt: e.target.value })}
+                placeholder="Define how the LLM should behave (e.g., 'You are a helpful assistant. Always respond in the user's language.')"
+                rows={4}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Instructions for the LLM (system message)
+              </p>
+            </div>
+
+            <div>
+              <Label>User Prompt Template</Label>
               <Textarea
                 value={config.prompt || ''}
                 onChange={(e) => setConfig({ ...config, prompt: e.target.value })}
-                placeholder="Enter the prompt for the LLM..."
-                rows={6}
+                placeholder="{{input}}"
+                rows={3}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Use {'{{variable}}'} for dynamic values
+                Use {`{{input}}`} to include the user's message. Leave empty to use input directly.
               </p>
             </div>
 

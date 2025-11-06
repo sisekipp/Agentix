@@ -257,11 +257,17 @@ export class AgentEngine {
           }
 
           // Use prompt template with context substitution
-          const processedPrompt = this.processPromptTemplate(
-            prompt || 'Process the following input: {{input}}',
-            context
-          );
-          messages.push({ role: 'user', content: processedPrompt });
+          // If no prompt template, use input directly
+          let userMessage: string;
+          if (prompt && prompt.trim()) {
+            userMessage = this.processPromptTemplate(prompt, context);
+          } else {
+            // Default: use input as-is (string) or as JSON
+            userMessage = typeof context.input === 'string'
+              ? context.input
+              : JSON.stringify(context.input);
+          }
+          messages.push({ role: 'user', content: userMessage });
 
           // Generate response
           const result = await LLMProviderService.generate(providerId, {
