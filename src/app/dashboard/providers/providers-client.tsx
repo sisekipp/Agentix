@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Power, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Power, ArrowLeft, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,6 +32,7 @@ import {
   createProvider,
   deleteProvider,
   toggleProviderActive,
+  updateProvider,
 } from "../actions";
 import { Badge } from "@/components/ui/badge";
 
@@ -61,6 +62,12 @@ interface ProvidersClientProps {
   providers: Provider[];
 }
 
+const MODEL_EXAMPLES = {
+  openai: "gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo",
+  anthropic: "claude-3-5-sonnet-20241022, claude-3-opus-20240229, claude-3-haiku-20240307",
+  google: "gemini-1.5-pro, gemini-1.5-flash, gemini-pro",
+};
+
 export function ProvidersClient({
   organizationId,
   teams,
@@ -69,15 +76,18 @@ export function ProvidersClient({
 }: ProvidersClientProps) {
   const router = useRouter();
   const [showCreateDialog, setShowCreateDialog] = React.useState(false);
-  const [isCreating, setIsCreating] = React.useState(false);
+  const [showEditDialog, setShowEditDialog] = React.useState(false);
+  const [editingProvider, setEditingProvider] = React.useState<Provider | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [selectedProviderType, setSelectedProviderType] = React.useState<string>("openai");
 
   function handleTeamChange(teamId: string) {
     router.push(`/dashboard/providers?org=${organizationId}&team=${teamId}`);
   }
 
   async function handleCreateProvider(formData: FormData) {
-    setIsCreating(true);
+    setIsSubmitting(true);
     setError(null);
 
     formData.append("teamId", selectedTeamId);
@@ -86,12 +96,39 @@ export function ProvidersClient({
 
     if (result.error) {
       setError(result.error);
-      setIsCreating(false);
+      setIsSubmitting(false);
     } else {
       setShowCreateDialog(false);
-      setIsCreating(false);
+      setIsSubmitting(false);
+      setSelectedProviderType("openai");
       router.refresh();
     }
+  }
+
+  async function handleUpdateProvider(formData: FormData) {
+    if (!editingProvider) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    const result = await updateProvider(editingProvider.id, formData);
+
+    if (result.error) {
+      setError(result.error);
+      setIsSubmitting(false);
+    } else {
+      setShowEditDialog(false);
+      setEditingProvider(null);
+      setIsSubmitting(false);
+      router.refresh();
+    }
+  }
+
+  function openEditDialog(provider: Provider) {
+    setEditingProvider(provider);
+    setSelectedProviderType(provider.provider);
+    setShowEditDialog(true);
+    setError(null);
   }
 
   async function handleDeleteProvider(providerId: string) {
@@ -182,6 +219,13 @@ export function ProvidersClient({
                   <Button
                     size="sm"
                     variant="outline"
+                    onClick={() => openEditDialog(provider)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => handleToggleActive(provider.id)}
                   >
                     <Power className="h-4 w-4" />
@@ -212,6 +256,7 @@ export function ProvidersClient({
         </div>
       </div>
 
+      {/* Create Provider Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <form action={handleCreateProvider}>
@@ -241,7 +286,12 @@ export function ProvidersClient({
 
               <div className="grid gap-2">
                 <Label htmlFor="provider">Provider Type</Label>
-                <Select name="provider" required>
+                <Select
+                  name="provider"
+                  required
+                  value={selectedProviderType}
+                  onValueChange={setSelectedProviderType}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select provider" />
                   </SelectTrigger>
@@ -258,9 +308,12 @@ export function ProvidersClient({
                 <Input
                   id="model"
                   name="model"
-                  placeholder="gpt-4-turbo"
+                  placeholder={MODEL_EXAMPLES[selectedProviderType as keyof typeof MODEL_EXAMPLES]?.split(',')[0]?.trim() || "gpt-4o"}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Examples: {MODEL_EXAMPLES[selectedProviderType as keyof typeof MODEL_EXAMPLES]}
+                </p>
               </div>
 
               <div className="grid gap-2">
@@ -279,13 +332,107 @@ export function ProvidersClient({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowCreateDialog(false)}
-                disabled={isCreating}
+                onClick={() => {
+                  setShowCreateDialog(false);
+                  setError(null);
+                  setSelectedProviderType("openai");
+                }}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isCreating}>
-                {isCreating ? "Creating..." : "Create Provider"}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Provider"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Provider Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <form action={handleUpdateProvider}>
+            <DialogHeader>
+              <DialogTitle>Edit LLM Provider</DialogTitle>
+              <DialogDescription>
+                Update the provider configuration.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              {error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Provider Name</Label>
+                <Input
+                  id="edit-name"
+                  name="name"
+                  defaultValue={editingProvider?.name}
+                  placeholder="My GPT-4 Provider"
+                  required
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Provider Type</Label>
+                <Input
+                  value={editingProvider?.provider}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Provider type cannot be changed
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-model">Model</Label>
+                <Input
+                  id="edit-model"
+                  name="model"
+                  defaultValue={editingProvider?.model}
+                  placeholder={MODEL_EXAMPLES[selectedProviderType as keyof typeof MODEL_EXAMPLES]?.split(',')[0]?.trim() || "gpt-4o"}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Examples: {MODEL_EXAMPLES[selectedProviderType as keyof typeof MODEL_EXAMPLES]}
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="edit-apiKey">API Key (optional)</Label>
+                <Input
+                  id="edit-apiKey"
+                  name="apiKey"
+                  type="password"
+                  placeholder="Leave empty to keep current key"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Only fill this if you want to update the API key
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowEditDialog(false);
+                  setEditingProvider(null);
+                  setError(null);
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Update Provider"}
               </Button>
             </DialogFooter>
           </form>
