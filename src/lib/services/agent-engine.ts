@@ -150,6 +150,7 @@ export class AgentEngine {
     // Execute nodes in order (simplified BFS)
     const queue = [...nextNodes];
     const visited = new Set<string>();
+    let stepIndex = 0; // Track execution order
 
     while (queue.length > 0) {
       const nodeId = queue.shift()!;
@@ -187,6 +188,7 @@ export class AgentEngine {
         // Save step execution
         await db.insert(agentExecutionSteps).values({
           agentExecutionId,
+          stepIndex, // Add step index for ordering
           nodeId,
           nodeType: node.type,
           nodeLabel: node.data.label,
@@ -198,6 +200,8 @@ export class AgentEngine {
           completedAt: new Date(),
           duration: stepDuration,
         });
+
+        stepIndex++; // Increment for next step
 
         // If step failed, stop execution
         if (stepStatus === 'failed') {
@@ -232,14 +236,17 @@ export class AgentEngine {
       case 'trigger':
         return { triggered: true, input: context.input };
 
+      case 'agent/LLM':
       case 'agent':
         // Execute LLM Agent (note: "agent" here means LLM call)
         try {
           const agentConfig = data.config || {};
-          const { providerId, prompt, systemPrompt, temperature, maxTokens } = agentConfig;
+          // Support both llmProviderId (new) and providerId (legacy)
+          const providerId = agentConfig.llmProviderId || agentConfig.providerId;
+          const { prompt, systemPrompt, temperature, maxTokens } = agentConfig;
 
           if (!providerId) {
-            throw new Error('Agent node requires a providerId in config');
+            throw new Error('Agent node requires an llmProviderId in config');
           }
 
           // Build messages
