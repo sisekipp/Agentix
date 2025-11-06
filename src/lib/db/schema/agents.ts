@@ -125,18 +125,17 @@ export const scenarioExecutions = pgTable("scenario_executions", {
     .references(() => users.id),
 });
 
-// Mid-Level: Agent-Ausführungen (innerhalb eines Szenarios)
+// Mid-Level: Agent-Ausführungen (innerhalb eines Szenarios oder standalone für Tests)
 export const agentExecutions = pgTable("agent_executions", {
   id: uuid("id").defaultRandom().primaryKey(),
   scenarioExecutionId: uuid("scenario_execution_id")
-    .references(() => scenarioExecutions.id, { onDelete: "cascade" })
-    .notNull(),
+    .references(() => scenarioExecutions.id, { onDelete: "cascade" }), // Nullable: für standalone tests
   agentVersionId: uuid("agent_version_id")
     .references(() => agentVersions.id)
     .notNull(),
 
-  // Orchestrierung-Kontext
-  scenarioNodeId: varchar("scenario_node_id", { length: 255 }).notNull(), // Node-ID im Szenario-Flow
+  // Orchestrierung-Kontext (optional für standalone tests)
+  scenarioNodeId: varchar("scenario_node_id", { length: 255 }), // Node-ID im Szenario-Flow
 
   status: varchar("status", { length: 50 }).notNull(), // running, completed, failed, cancelled
   input: jsonb("input"),
