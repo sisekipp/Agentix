@@ -38,10 +38,30 @@ export function OrganizationSelector({
   onCreateNew,
 }: OrganizationSelectorProps) {
   const [open, setOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  // Only render after mounting to avoid hydration mismatch
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const currentOrganization = organizations.find(
     (org) => org.id === currentOrganizationId
   );
+
+  // Show a simplified button during SSR
+  if (!mounted) {
+    return (
+      <Button
+        variant="outline"
+        className="w-full justify-between"
+        disabled
+      >
+        {currentOrganization ? currentOrganization.name : "Select organization..."}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
