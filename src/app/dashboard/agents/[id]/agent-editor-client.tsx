@@ -69,6 +69,34 @@ export function AgentEditorClient({
     scrollToBottom();
   }, [testMessages]);
 
+  // Extract and format agent output from nested structure
+  const formatAgentOutput = (result: any): string => {
+    if (!result.output) {
+      return `Execution completed!\n\nStatus: ${result.status}\nExecution ID: ${result.executionId}`;
+    }
+
+    // Extract LLM responses from results
+    const results = result.output.results || {};
+    const llmResponses: string[] = [];
+
+    for (const [nodeId, nodeResult] of Object.entries(results)) {
+      const resultData = nodeResult as any;
+
+      // Check if this is an LLM node result
+      if (resultData?.type === 'agent' && resultData?.result) {
+        llmResponses.push(resultData.result);
+      }
+    }
+
+    // If we found LLM responses, show them
+    if (llmResponses.length > 0) {
+      return llmResponses.join('\n\n');
+    }
+
+    // Fallback: show full output as JSON
+    return `Execution completed!\n\n${JSON.stringify(result.output, null, 2)}`;
+  };
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -152,7 +180,7 @@ export function AgentEditorClient({
           msg.id === assistantMessageId
             ? {
                 ...msg,
-                content: `Execution completed!\n\nStatus: ${result.status}\nExecution ID: ${result.executionId}`,
+                content: formatAgentOutput(result),
                 status: 'completed',
                 executionId: result.executionId,
               }
