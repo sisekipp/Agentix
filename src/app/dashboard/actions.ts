@@ -255,34 +255,58 @@ export async function getWorkflowsByOrganization(organizationId: string) {
         )
       );
 
+    console.log("User teams in organization:", {
+      organizationId,
+      userId: user.id,
+      teamCount: userTeams.length,
+      teamIds: userTeams.map(t => t.teamId),
+    });
+
     if (userTeams.length === 0) {
       return { workflows: [] };
     }
 
     const teamIds = userTeams.map((t) => t.teamId);
 
-    // Get all workflows from these teams
-    const workflowList = await db.query.workflows.findMany({
-      where: eq(workflows.teamId, teamIds[0]), // This needs to be improved for multiple teams
-      orderBy: [desc(workflows.createdAt)],
-      with: {
-        team: {
-          columns: {
-            id: true,
-            name: true,
-          },
-        },
-        createdBy: {
-          columns: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
+    // Get all workflows from ALL user teams (not just the first one)
+    const workflowList = await db
+      .select()
+      .from(workflows)
+      .where(
+        teamIds.length === 1
+          ? eq(workflows.teamId, teamIds[0])
+          : // Use SQL IN clause for multiple teams
+            sql`${workflows.teamId} IN ${teamIds}`
+      )
+      .orderBy(desc(workflows.createdAt));
+
+    console.log("Workflows found:", {
+      count: workflowList.length,
+      workflows: workflowList.map(w => ({ id: w.id, name: w.name, teamId: w.teamId })),
     });
 
-    return { workflows: workflowList };
+    // Fetch related data
+    const workflowsWithRelations = await Promise.all(
+      workflowList.map(async (workflow) => {
+        const team = await db.query.teams.findFirst({
+          where: eq(teams.id, workflow.teamId),
+          columns: { id: true, name: true },
+        });
+
+        const createdBy = await db.query.users.findFirst({
+          where: eq(users.id, workflow.createdById),
+          columns: { id: true, name: true, email: true },
+        });
+
+        return {
+          ...workflow,
+          team,
+          createdBy,
+        };
+      })
+    );
+
+    return { workflows: workflowsWithRelations };
   } catch (error) {
     console.error("Failed to fetch workflows:", error);
     return { error: "Failed to fetch workflows", workflows: [] };
