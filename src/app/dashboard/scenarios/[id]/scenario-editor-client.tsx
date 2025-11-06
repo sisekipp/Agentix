@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useCallback } from 'react';
 import { ScenarioBuilder } from '@/components/scenario-builder';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, Save, MessageSquare, List } from 'lucide-react';
@@ -40,9 +40,9 @@ export function ScenarioEditorClient({
     version?.orchestrationDefinition || { nodes: [], edges: [] }
   );
 
-  const handleChange = (definition: ScenarioDefinition) => {
+  const handleChange = useCallback((definition: ScenarioDefinition) => {
     setCurrentDefinition(definition);
-  };
+  }, []);
 
   const handleSave = async () => {
     startTransition(async () => {

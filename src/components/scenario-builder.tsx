@@ -204,7 +204,8 @@ export function ScenarioBuilder({
       };
       onChange(definition);
     }
-  }, [nodes, edges, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
