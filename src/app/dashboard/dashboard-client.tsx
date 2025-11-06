@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Building2, Users } from "lucide-react";
+import { Plus, Building2, Users, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/components/logout-button";
@@ -182,6 +182,27 @@ export function DashboardClient({
               </Card>
             </div>
 
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="flex gap-3">
+                <Button onClick={() => setShowCreateTeamDialog(true)} variant="outline">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Team
+                </Button>
+                <Button
+                  onClick={() => router.push(`/dashboard/providers?org=${currentOrganizationId}`)}
+                  variant="outline"
+                  disabled={teams.length === 0}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Manage LLM Providers
+                </Button>
+              </CardContent>
+            </Card>
+
             {/* Teams Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -191,10 +212,6 @@ export function DashboardClient({
                     Organize your workflows and collaborate with team members
                   </p>
                 </div>
-                <Button onClick={() => setShowCreateTeamDialog(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Team
-                </Button>
               </div>
               <TeamsList teams={teams} />
             </div>

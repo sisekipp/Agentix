@@ -14,6 +14,8 @@ import {
   Node,
   NodeTypes,
   NodeMouseHandler,
+  Handle,
+  Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
@@ -25,34 +27,44 @@ const TriggerNode = ({ data }: { data: any }) => (
   <div className="px-4 py-2 shadow-md rounded-md bg-blue-500 text-white border-2 border-blue-700">
     <div className="font-bold">🚀 {data.label}</div>
     <div className="text-xs">{data.description}</div>
+    <Handle type="source" position={Position.Bottom} />
   </div>
 );
 
 const AgentNode = ({ data }: { data: any }) => (
   <div className="px-4 py-2 shadow-md rounded-md bg-purple-500 text-white border-2 border-purple-700">
+    <Handle type="target" position={Position.Top} />
     <div className="font-bold">🤖 {data.label}</div>
     <div className="text-xs">{data.description}</div>
+    <Handle type="source" position={Position.Bottom} />
   </div>
 );
 
 const ToolNode = ({ data }: { data: any }) => (
   <div className="px-4 py-2 shadow-md rounded-md bg-green-500 text-white border-2 border-green-700">
+    <Handle type="target" position={Position.Top} />
     <div className="font-bold">🔧 {data.label}</div>
     <div className="text-xs">{data.description}</div>
+    <Handle type="source" position={Position.Bottom} />
   </div>
 );
 
 const DecisionNode = ({ data }: { data: any }) => (
   <div className="px-4 py-2 shadow-md rounded-md bg-yellow-500 text-white border-2 border-yellow-700">
+    <Handle type="target" position={Position.Top} />
     <div className="font-bold">🔀 {data.label}</div>
     <div className="text-xs">{data.description}</div>
+    <Handle type="source" position={Position.Bottom} id="true" />
+    <Handle type="source" position={Position.Right} id="false" />
   </div>
 );
 
 const ActionNode = ({ data }: { data: any }) => (
   <div className="px-4 py-2 shadow-md rounded-md bg-red-500 text-white border-2 border-red-700">
+    <Handle type="target" position={Position.Top} />
     <div className="font-bold">⚡ {data.label}</div>
     <div className="text-xs">{data.description}</div>
+    <Handle type="source" position={Position.Bottom} />
   </div>
 );
 

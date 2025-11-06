@@ -15,12 +15,16 @@ interface WorkflowEditorClientProps {
   workflow: any;
   version: any;
   user: any;
+  providers?: Array<{ id: string; name: string; provider: string; model: string }>;
+  tools?: Array<{ id: string; name: string; description: string; type: string }>;
 }
 
 export function WorkflowEditorClient({
   workflow,
   version,
   user,
+  providers = [],
+  tools = [],
 }: WorkflowEditorClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -103,6 +107,8 @@ export function WorkflowEditorClient({
         <WorkflowBuilder
           initialDefinition={currentDefinition}
           onSave={handleSave}
+          providers={providers}
+          tools={tools}
         />
       </div>
 
