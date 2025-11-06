@@ -283,6 +283,14 @@ export class ScenarioEngine {
             throw new Error(`No active agent version found for: ${config.agentId}`);
           }
 
+          console.log(`Loaded agent version for ${config.agentName}:`, {
+            agentId: config.agentId,
+            versionId: agentVersion.id,
+            versionName: agentVersion.name,
+            isActive: agentVersion.isActive,
+            nodeCount: (agentVersion.workflowDefinition as any)?.nodes?.length || 0,
+          });
+
           // Find the incoming edge to determine what input this agent should receive
           const incomingEdges = edges.filter(e => e.target === node.id);
           let processedInput: Record<string, any>;

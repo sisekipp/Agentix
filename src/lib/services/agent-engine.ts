@@ -63,6 +63,21 @@ export class AgentEngine {
 
       // Validate agent definition
       const definition = version.workflowDefinition as AgentDefinition;
+
+      // Debug: Log the loaded workflow definition
+      console.log(`Agent version loaded:`, {
+        versionId: version.id,
+        versionName: version.name,
+        agentId: version.agentId,
+        isActive: version.isActive,
+        createdAt: version.createdAt,
+        nodes: definition.nodes?.map(n => ({
+          id: n.id,
+          type: n.type,
+          systemPrompt: n.data?.config?.systemPrompt?.substring(0, 50) + '...'
+        }))
+      });
+
       const validation = WorkflowConverter.validateDefinition(definition);
 
       if (!validation.valid) {
