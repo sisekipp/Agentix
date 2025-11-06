@@ -30,6 +30,15 @@ export function ChatClient({
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Debug: Log when we receive new initialMessages
+  useEffect(() => {
+    console.log('ChatClient received initialMessages:', {
+      count: initialMessages.length,
+      ids: initialMessages.map((m: any) => m.id),
+    });
+    setMessages(initialMessages);
+  }, [initialMessages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -58,7 +67,7 @@ export function ChatClient({
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return; // Prevent double submission
 
     // If no conversation exists, start one first
     if (!conversation) {
@@ -101,7 +110,7 @@ export function ChatClient({
         setMessages((prev) => {
           // Remove the optimistic message
           const filtered = prev.filter((m) => m.id !== optimisticUserMessage.id);
-          // Add the real user and assistant messages
+          // Add the real user and assistant messages (they already have unique IDs)
           return [...filtered, ...result.messages];
         });
       } else {
