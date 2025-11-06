@@ -222,10 +222,24 @@ export async function updateAgentDefinition(
       return { error: "Access denied" };
     }
 
-    // Get active version
-    const activeVersion = agent.versions[0];
+    // Get active version, or create one if none exists
+    let activeVersion = agent.versions[0];
     if (!activeVersion) {
-      return { error: "No active agent version found" };
+      console.warn(`Agent ${agentId} has no active version, creating one...`);
+
+      // Auto-create an active version to fix data inconsistency
+      const [newVersion] = await db.insert(agentVersions).values({
+        agentId: agent.id,
+        version: 1,
+        name: "Initial version",
+        description: "Auto-created initial version",
+        workflowDefinition: definition || { nodes: [], edges: [] },
+        isActive: true,
+        createdById: user.id,
+      }).returning();
+
+      activeVersion = newVersion;
+      console.log(`Created new active version ${activeVersion.id} for agent ${agentId}`);
     }
 
     // Update agent definition in version
