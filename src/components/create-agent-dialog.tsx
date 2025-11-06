@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { createAgent } from '@/app/dashboard/agent-actions';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreateAgentDialogProps {
   open: boolean;
@@ -47,6 +48,7 @@ export function CreateAgentDialog({
   teams,
 }: CreateAgentDialogProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -58,7 +60,11 @@ export function CreateAgentDialog({
     e.preventDefault();
 
     if (!name || !teamId) {
-      alert('Name and team are required');
+      toast({
+        title: 'Missing fields',
+        description: 'Name and team are required',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -73,8 +79,12 @@ export function CreateAgentDialog({
       const result = await createAgent(formData);
 
       if (result.error) {
-        alert(`Error: ${result.error}`);
-      } else {
+        toast({
+          title: 'Error',
+          description: result.error,
+          variant: 'destructive',
+        });
+      } else{
         // Reset form
         setName('');
         setDescription('');

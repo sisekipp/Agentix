@@ -8,6 +8,7 @@ import { CreateScenarioDialog } from '@/components/create-scenario-dialog';
 import { deleteScenario } from '../agent-actions';
 import { LogoutButton } from '@/components/logout-button';
 import { OrganizationSelector } from '@/components/organization-selector';
+import { useToast } from '@/hooks/use-toast';
 
 interface ScenariosClientProps {
   user: any;
@@ -40,6 +41,7 @@ export function ScenariosClient({
 }: ScenariosClientProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
@@ -73,13 +75,25 @@ export function ScenariosClient({
     try {
       const result = await deleteScenario(scenarioId);
       if (result.error) {
-        alert(`Error: ${result.error}`);
+        toast({
+          title: 'Error',
+          description: result.error,
+          variant: 'destructive',
+        });
       } else {
+        toast({
+          title: 'Scenario deleted',
+          description: `"${scenarioName}" has been deleted successfully.`,
+        });
         router.refresh();
       }
     } catch (error) {
       console.error('Failed to delete scenario:', error);
-      alert('Failed to delete scenario');
+      toast({
+        title: 'Error',
+        description: 'Failed to delete scenario',
+        variant: 'destructive',
+      });
     } finally {
       setIsDeleting(null);
     }

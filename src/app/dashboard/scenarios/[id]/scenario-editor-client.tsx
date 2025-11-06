@@ -10,6 +10,7 @@ import {
   executeScenario,
 } from '../../agent-actions';
 import type { ScenarioDefinition } from '@/lib/types/agent';
+import { useToast } from '@/hooks/use-toast';
 
 interface ScenarioEditorClientProps {
   scenario: any;
@@ -31,6 +32,7 @@ export function ScenarioEditorClient({
   agents = [],
 }: ScenarioEditorClientProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResult, setExecutionResult] = useState<any>(null);
@@ -45,9 +47,16 @@ export function ScenarioEditorClient({
       const result = await updateScenarioDefinition(scenario.id, definition);
 
       if (result.error) {
-        alert(`Error: ${result.error}`);
+        toast({
+          title: 'Error',
+          description: result.error,
+          variant: 'destructive',
+        });
       } else {
-        alert('Scenario saved successfully!');
+        toast({
+          title: 'Scenario saved',
+          description: 'Your scenario has been saved successfully.',
+        });
       }
     });
   };
@@ -75,9 +84,10 @@ export function ScenarioEditorClient({
       }
 
       setExecutionResult(result);
-      alert(
-        `Scenario executed! Status: ${result.status}\nExecution ID: ${result.executionId}`
-      );
+      toast({
+        title: 'Scenario executed',
+        description: `Status: ${result.status}. Navigating to execution details...`,
+      });
 
       // Navigate to execution details
       if (result.executionId) {
@@ -85,7 +95,11 @@ export function ScenarioEditorClient({
       }
     } catch (error: any) {
       console.error('Execution error:', error);
-      alert(`Failed to execute scenario: ${error.message}`);
+      toast({
+        title: 'Execution failed',
+        description: error.message || 'Failed to execute scenario',
+        variant: 'destructive',
+      });
     } finally {
       setIsExecuting(false);
     }

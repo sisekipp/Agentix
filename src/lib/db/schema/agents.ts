@@ -155,6 +155,9 @@ export const agentExecutionSteps = pgTable("agent_execution_steps", {
     .references(() => agentExecutions.id, { onDelete: "cascade" })
     .notNull(),
 
+  // Execution order
+  stepIndex: integer("step_index").notNull(),
+
   // Node-Info aus dem Agent-Workflow
   nodeId: varchar("node_id", { length: 255 }).notNull(),
   nodeType: varchar("node_type", { length: 50 }).notNull(), // trigger, agent, tool, decision, etc.

@@ -8,6 +8,7 @@ import { CreateAgentDialog } from '@/components/create-agent-dialog';
 import { deleteAgent } from '../agent-actions';
 import { LogoutButton } from '@/components/logout-button';
 import { OrganizationSelector } from '@/components/organization-selector';
+import { useToast } from '@/hooks/use-toast';
 
 interface AgentsClientProps {
   user: any;
@@ -26,6 +27,7 @@ export function AgentsClient({
 }: AgentsClientProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
@@ -59,13 +61,25 @@ export function AgentsClient({
     try {
       const result = await deleteAgent(agentId);
       if (result.error) {
-        alert(`Error: ${result.error}`);
+        toast({
+          title: 'Error',
+          description: result.error,
+          variant: 'destructive',
+        });
       } else {
+        toast({
+          title: 'Agent deleted',
+          description: `"${agentName}" has been deleted successfully.`,
+        });
         router.refresh();
       }
     } catch (error) {
       console.error('Failed to delete agent:', error);
-      alert('Failed to delete agent');
+      toast({
+        title: 'Error',
+        description: 'Failed to delete agent',
+        variant: 'destructive',
+      });
     } finally {
       setIsDeleting(null);
     }

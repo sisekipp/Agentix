@@ -21,6 +21,7 @@ import {
 import { createScenario } from '@/app/dashboard/agent-actions';
 import { useRouter } from 'next/navigation';
 import { MessageSquare, Zap, Webhook, Clock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreateScenarioDialogProps {
   open: boolean;
@@ -63,6 +64,7 @@ export function CreateScenarioDialog({
   teams,
 }: CreateScenarioDialogProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -73,7 +75,11 @@ export function CreateScenarioDialog({
     e.preventDefault();
 
     if (!name || !teamId || !triggerType) {
-      alert('Name, team, and trigger type are required');
+      toast({
+        title: 'Missing fields',
+        description: 'Name, team, and trigger type are required',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -87,7 +93,11 @@ export function CreateScenarioDialog({
       const result = await createScenario(formData);
 
       if (result.error) {
-        alert(`Error: ${result.error}`);
+        toast({
+          title: 'Error',
+          description: result.error,
+          variant: 'destructive',
+        });
       } else {
         // Reset form
         setName('');
