@@ -177,8 +177,7 @@ export function ScenarioNodeConfigDialog({
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Use {'{{'} {'}}' for template variables (e.g., {'{{'}.trigger.input{'}}'}
-                  )
+                  Use {`{{variable}}`} for template variables (e.g., {`{{trigger.input}}`})
                 </p>
               </div>
             )}
