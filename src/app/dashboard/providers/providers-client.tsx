@@ -351,7 +351,7 @@ export function ProvidersClient({
 
       {/* Edit Provider Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent key={editingProvider?.id}>
           <form action={handleUpdateProvider}>
             <DialogHeader>
               <DialogTitle>Edit LLM Provider</DialogTitle>
@@ -384,6 +384,7 @@ export function ProvidersClient({
                   value={editingProvider?.provider || ""}
                   disabled
                   className="bg-muted"
+                  readOnly
                 />
                 <p className="text-xs text-muted-foreground">
                   Provider type cannot be changed
