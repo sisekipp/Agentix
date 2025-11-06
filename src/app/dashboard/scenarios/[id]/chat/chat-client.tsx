@@ -30,14 +30,14 @@ export function ChatClient({
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Debug: Log when we receive new initialMessages
+  // Debug: Log initial messages count
   useEffect(() => {
-    console.log('ChatClient received initialMessages:', {
-      count: initialMessages.length,
-      ids: initialMessages.map((m: any) => m.id),
+    console.log('ChatClient mounted with messages:', {
+      count: messages.length,
+      messageIds: messages.map((m: any) => m.id),
     });
-    setMessages(initialMessages);
-  }, [initialMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
