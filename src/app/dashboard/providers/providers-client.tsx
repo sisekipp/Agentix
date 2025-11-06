@@ -372,7 +372,7 @@ export function ProvidersClient({
                 <Input
                   id="edit-name"
                   name="name"
-                  defaultValue={editingProvider?.name}
+                  defaultValue={editingProvider?.name || ""}
                   placeholder="My GPT-4 Provider"
                   required
                 />
@@ -381,7 +381,7 @@ export function ProvidersClient({
               <div className="grid gap-2">
                 <Label>Provider Type</Label>
                 <Input
-                  value={editingProvider?.provider}
+                  value={editingProvider?.provider || ""}
                   disabled
                   className="bg-muted"
                 />
@@ -395,7 +395,7 @@ export function ProvidersClient({
                 <Input
                   id="edit-model"
                   name="model"
-                  defaultValue={editingProvider?.model}
+                  defaultValue={editingProvider?.model || ""}
                   placeholder={MODEL_EXAMPLES[selectedProviderType as keyof typeof MODEL_EXAMPLES]?.split(',')[0]?.trim() || "gpt-4o"}
                   required
                 />
