@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { organizations, teams, teamMembers, workflows, workflowVersions } from "@/lib/db/schema";
+import { organizations, teams, teamMembers, workflows, workflowVersions, users } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth-server";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { WorkflowEngine } from "@/lib/services/workflow-engine";
 import type { WorkflowDefinition } from "@/lib/types/workflow";
